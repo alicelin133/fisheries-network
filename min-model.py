@@ -6,6 +6,7 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 plt.switch_backend('Qt5Agg')
+import min-model-constants as const
 
 def simulate(G, maxstep):
     for i in range(maxstep):
@@ -19,28 +20,38 @@ def one_step(G):
     return G
 
 def harvest(G):
-    
+    q = G.graph['q']
+    for i in range(number_of_nodes(G)): # TODO: check if this function is correct
+        R = G.node[i]['R']
+        e = G.node[i]['e']
+        R -= q * R * e
+        G.node[i]['R'] = R
     return G
 
 def leakage(G):
+    delta = G.graph['delta']
+    n = nx.number_of_nodes(G)
+    sum = 0.0
+    for i in range(n):
+        sum += G.node[i]['R']
+    for i in range(n):
+        R = G.node[i]['R']
+        R = (1 - delta) * R + sum / n
     return G
 
 def update_strategy(G):
     return G
 
 if __name__ == "__main__":
-    n = 10 # number of spatial units (territories), 1 fisher in each
-    G = nx.complete_graph(n) # initializes network of fisheries
+    G = nx.complete_graph(const.n) # initializes network of fisheries
     G.graph['t'] = 0 # initializes time to 0
-    delta = 0 # factor of leakage
-    G.graph['delta'] = delta
-    R_0 = 50 # initial biomass of fish per territory
-    e_0 = 0.005 # initial effort level from one fisher
-    for i in range(n):
-        G.node[i]['R'] = R_0
-        G.node[i]['e'] = e_0
+    G.graph['delta'] = const.delta
+    G.graph['q'] = const.q
+    for i in range(const.n):
+        G.node[i]['R'] = const.R_0
+        G.node[i]['e'] = const.e_0
     # print(G.nodes(data=True)) # checks node attributes
-    maxstep = 10000
-    simulate(G, maxstep) # start simulation
+    # simulate(G, maxstep) # start simulation
+    print(leakage(G).nodes(data=True))
 
 
