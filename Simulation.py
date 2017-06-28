@@ -1,3 +1,8 @@
+import networkx as nx
+import numpy as np
+import matplotlib.pyplot as plt
+plt.switch_backend('Qt5Agg')
+
 class Simulation(object):
 """ A network of territories of fishers, where each territory harvests fish,
 and fish move between territories. Nodes represent territories, edges
@@ -12,43 +17,42 @@ Node (territory) attributes:
     R: float representing territory's resource level
     e: float representing territory's effort level
 """
-import networkx as nx
-import numpy as np
-import matplotlib.pyplot as plt
-plt.switch_backend('Qt5Agg')
+    def __init__(self, n_fishers, delta, q, R_0, e_0):
+        """Return a Simulation object with a complete graph on *n_fishers* nodes,
+        a leakage factor of *delta*, a fish catchability factor of *q*, and
+        individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
+        self.G = nx.complete_graph(n_fishers)
+        # TODO: use assert to check length of R_0 and e_0 arrays
+        self.t = 0 # intialize time step t to 0
+        self.delta = delta
+        self.q = q
+        for i in range(self.G.number_of_nodes()):
+            self.G.node[i]['R'] = R_0[i]
+            self.G.node[i]['e'] = e_0[i]
+        
+    def simulate(self, maxstep):
+        """Runs a discrete simulation of the fisheries network for *maxstep*
+        time steps."""
+        for j in range(maxstep):
+            harvest()
+            leakage()
+            update_strategy()
+            self.t += 1
 
-def __init__(self, n_fishers, delta, q, R_0, e_0):
-    """Return a Simulation object with a complete graph on *n_fishers* nodes,
-    a leakage factor of *delta*, a fish catchability factor of *q*, and
-    individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
-    self.G = nx.complete_graph(n_fishers)
-    # TODO: use assert to check length of R_0 and e_0 arrays
-    self.G.graph['t'] = 0 # intialize time step t to 0
-    self.G.graph['delta'] = delta
-    self.G.graph['q'] = q
-    for i in range(self.G.number_of_nodes()):
-        self.G.node[i]['R'] = R_0[i]
-        self.G.node[i]['e'] = e_0[i]
-    
-def simulate(self, maxstep):
-    """Runs a discrete simulation of the fisheries network for *maxstep*
-    time steps."""
-    for j in range(maxstep):
-        harvest()
-        leakage()
-        update_strategy()
-        self.G.graph['t'] = j + 1
+    def harvest(self):
+        """Updates resource R for each territory based on e, the territory's
+        effort level, for a single time step."""
+        for i in range(self.G.number_of_nodes()):
+            R = self.G.node[i]['R']
+            e = self.G.node[i]['e']
+            R -= self.q * R * e
+            self.G.node[i]['R'] = R
 
-def harvest(self):
-    """Updates resource R for each territory based on e, the territory's
-    effort level, for a single time step."""
-    pass
-
-def leakage(self):
-    """Updates resource R for each territory based on resource leakage
-    between territories. Each territory i gives (delta * R / self.G.degree(i))
-    amount of resource to each of its adjacent territories."""
-    # TODO: figure out whether you want to use n or n-1 in the denominator
-    # of what goes to the neighboring territories. probably n-1 because it
-    # is easier to do that in code because it just uses the degree method
-    pass
+    def leakage(self):
+        """Updates resource R for each territory based on resource leakage
+        between territories. Each territory i gives (delta * R / self.G.degree(i))
+        amount of resource to each of its adjacent territories."""
+        # TODO: figure out whether you want to use n or n-1 in the denominator
+        # of what goes to the neighboring territories. probably n-1 because it
+        # is easier to do that in code because it just uses the degree method
+        pass
