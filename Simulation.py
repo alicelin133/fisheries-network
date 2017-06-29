@@ -64,15 +64,14 @@ class Simulation(object):
         """Updates resource R for each territory based on resource leakage
         between territories. Each territory i gives (delta * R / self.G.degree(i))
         amount of resource to each of its adjacent territories."""
-        # TODO: check that updating R works using unit testing
-        for nood in range(self.G.number_of_nodes()):
+        for nood in self.G.nodes(data=False):
             R = self.G.node[nood]['R']
-            for neighbor in self.G.neighbors(nood):
+            for neighbor in self.G[nood]:
                 self.G.node[neighbor]['dR'] += R * self.delta / (self.G.degree(nood) + 1)
-        for i in range(self.G.number_of_nodes()):
-            self.G.node[i]['R'] = self.G.node[i]['R'] * (1 - self.delta) + \
-            self.delta * self.G.node[i]['R'] / (self.G.degree(i) + 1) + \
-            self.G.node[i]['dR']
+        for nood in self.G.nodes(data=False):
+            self.G.node[nood]['R'] = self.G.node[nood]['R'] * (1 - self.delta) + \
+            self.delta * self.G.node[nood]['R'] / (self.G.degree(nood) + 1) + \
+            self.G.node[nood]['dR']
     
     def update_strategy(self):
         """Selects two fishers randomly to compare payoff pi. The fisher with
