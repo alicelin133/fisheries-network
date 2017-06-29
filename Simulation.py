@@ -87,7 +87,27 @@ class Simulation(object):
         fisher, but uniformly distributed around the effort level of the other
         fisher."""
         # TODO: update this crappy description >:(
-        pass
+        fisher1 = np.random.randint(0,n_fishers + 1) # pick 2 fishers
+        fisher2 = np.random.randint(0,n_fishers + 1)
+        if self.G.node[fisher1]['pi'] < self.G.node[fisher2]['pi']:
+            fisher_lo = fisher1
+            fisher_hi = fisher2
+            pi_lo = self.G.node[fisher1]['pi']
+            pi_hi = self.G.node[fisher2]['pi']
+        else: # note that this case occurs when they have equal payoffs
+            fisher_lo = fisher2
+            fisher_hi = fisher1
+            pi_lo = self.G.node[fisher2]['pi']
+            pi_hi = self.G.node[fisher1]['pi']
+        # Probability that lo-payoff fisher switches to hi-p fisher's strategy
+        switch_prob = (pi_hi - pi_lo) / (abs(pi_hi) + abs(pi_lo))
+        prob = np.random.random()
+        if prob < switch_prob:
+            self.G.node[fisher_lo]['e'] = self.G.node[fisher_hi]['e']
+            # TODO: ask how the noise function works for this. see lab journal
+            # for more details on the question
+        else:
+            pass
 
 def main():
     """Performs unit testing."""
