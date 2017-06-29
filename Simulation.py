@@ -12,21 +12,21 @@ class Simulation(object):
         corresponds to a connection b/w territories that fish can leak through
         n_fishers: the number of territories in the network (1 fisher per
         territory)
-        t: integer representing the current time step t of the simulation
-        delta: float representing extent to which territories are ecologically
+        t: integer, the current time step *t* of the simulation
+        delta: float, extent to which territories are ecologically
         connected
-        q: float representing "catchability" of fish resource
-        price: price received per unit of fish
-        cost: cost per unit of effort invested in fishing
+        q: float, "catchability" of fish resource
+        price: float, price received per unit of fish
+        cost: float, cost per unit of effort invested in fishing
+        noise: float, switching strategies occurs with +/- *noise*
     Node (territory) attributes:
-        R: float representing territory's resource level
-        e: float representing territory's effort level
+        R: float, territory's resource level
+        e: float, territory's effort level
         dR: float, for internal use in calculating leakage.
-        pi: float representing territory's payoff from
-        current time step
+        pi: float, territory's payoff from current time step
     """
 
-    def __init__(self, n_fishers, delta, q, R_0, e_0, price, cost):
+    def __init__(self, n_fishers, delta, q, R_0, e_0, price, cost, noise):
         """Return a Simulation object with a complete graph on *n_fishers* nodes,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
@@ -38,6 +38,7 @@ class Simulation(object):
         self.q = q
         self.price = price
         self.cost = cost
+        self.noise = noise
         # TODO: check length of R_0 and e_0 arrays, throw error if wrong
         for i in range(self.G.number_of_nodes()):
             self.G.node[i]['R'] = R_0[i]
@@ -103,9 +104,12 @@ class Simulation(object):
         switch_prob = (pi_hi - pi_lo) / (abs(pi_hi) + abs(pi_lo))
         prob = np.random.random()
         if prob < switch_prob:
-            self.G.node[fisher_lo]['e'] = self.G.node[fisher_hi]['e']
-            # TODO: ask how the noise function works for this. see lab journal
-            # for more details on the question
+            diff = np.random.uniform(-1 * self.noise, self.noise)
+            e_new = self.G.node[fisher_hi]['e'] + diff
+            if e_new < 0:
+                e_new = 0
+            self.G.node[fisher_lo]['e'] = e_new
+            # TODO: should effort be within [0,1]? Seems to be just >0 atm
         else:
             pass
 
@@ -113,7 +117,7 @@ def main():
     """Performs unit testing."""
     R_0 = np.array([2.0,4.0,6.0])
     e_0 = np.array([1.0,2.0,3.0])
-    my_sim = Simulation(3, 1, 1, R_0, e_0, 1, 0.1)
+    my_sim = Simulation(3, 1, 1, R_0, e_0, 1, 0.1, 0.1)
     print("Node attributes before harvest: {}".format(my_sim.G.nodes(data=True)))
     my_sim.harvest()
     for nood in my_sim.G.nodes(data=False):
