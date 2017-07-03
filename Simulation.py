@@ -16,6 +16,8 @@ class Simulation(object):
         delta: float, extent to which territories are ecologically
         connected
         q: float, "catchability" of fish resource
+        r: float, growth factor of fish population 
+        K: float, carrying capacity of fish population
         price: float, price received per unit of fish
         cost: float, cost per unit of effort invested in fishing
         noise: float, switching strategies occurs with +/- *noise*
@@ -26,7 +28,7 @@ class Simulation(object):
         pi: float, territory's payoff from current time step
     """
 
-    def __init__(self, n_fishers, delta, q, R_0, e_0, price, cost, noise):
+    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise):
         """Return a Simulation object with a complete graph on *n_fishers* nodes,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
@@ -36,6 +38,8 @@ class Simulation(object):
         self.t = 0 # intialize time step t to 0
         self.delta = delta
         self.q = q
+        self.r = r
+        self.K = K
         self.price = price
         self.cost = cost
         self.noise = noise
@@ -50,6 +54,7 @@ class Simulation(object):
         time steps."""
         for j in range(maxstep):
             harvest()
+            regrowth()
             leakage()
             update_strategy()
             self.t += 1
@@ -68,6 +73,15 @@ class Simulation(object):
             else: # case 2: fisher wants less fish than he could take
                 self.G.node[nood]['R'] = R - harvest
             self.G.node[nood]['pi'] = self.price * harvest - self.cost * e
+
+    def regrowth(self):
+        """Updates resource R for each territory based on the fish population's
+        logistic growth, occurs after the time step's harvest."""
+        # TODO: WRITE THIS
+        # something like dR = r * R * (1 - R / K) and then R = R += dR
+        for nood in self.G.nodes(data=False):
+            R = self.G.node[nood]['R']
+            self.G.node[nood]['R'] += self.r * R * (1 - R / self.K)
             
     def leakage(self):
         """Updates resource R for each territory based on resource leakage
@@ -116,15 +130,18 @@ class Simulation(object):
 def main():
     """Performs unit testing."""
     R_0 = np.array([2.0,4.0,6.0])
-    e_0 = np.array([1.0,2.0,3.0])
-    my_sim = Simulation(3, 1, 1, R_0, e_0, 1, 0.1, 0.1)
+    e_0 = np.array([0.1,0.1,0.1])
+    my_sim = Simulation(3, 1, 1, 1, 10, R_0, e_0, 1, 0.1, 0.1)
     print("Node attributes before harvest: {}".format(my_sim.G.nodes(data=True)))
     my_sim.harvest()
     for nood in my_sim.G.nodes(data=False):
-        print("Payoff for fisher {} is {}".format(nood, self.G.node[nood]['pi']))
+        print("Payoff for fisher {} is {}".format(nood, my_sim.G.node[nood]['pi']))
     print("Node attributes after harvest, before leakage: {}".format(my_sim.G.nodes(data=True)))
     my_sim.leakage()
     print("Node attributes after leakage: {}".format(my_sim.G.nodes(data=True)))
+    # TODO: Run the simulation over time, my_sim.simulate(maxstep=100) or
+    # something and figure out how to graph the results on matplotlib to see
+    # what happens. It'll probably be absolutely awful but we'll see.
 
 if __name__ == "__main__":
     main()
