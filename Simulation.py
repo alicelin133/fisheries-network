@@ -34,11 +34,9 @@ class Simulation(object):
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
         self.check_sim_attributes(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
         self.G = nx.complete_graph(n_fishers)
-        # TODO: may not be necessary to have the n_fishers data attribute
         self.n_fishers = n_fishers
         self.t = 0 # intialize time step t to 0
         self.delta = delta
-        # TODO: check that 0 <= q <= 1
         self.q = q
         self.r = r
         self.K = K
@@ -68,11 +66,14 @@ class Simulation(object):
     def simulate(self, maxstep):
         """Runs a discrete simulation of the fisheries network for *maxstep*
         time steps."""
+        e_data = np.zeros((self.n_fishers, maxstep))
+        R_data = np.zeros((self.n_fishers, maxstep))
+        pi_data = np.zeros((self.n_fishers, maxstep))
         for j in range(maxstep):
-            harvest()
-            regrowth()
-            leakage()
-            update_strategy()
+            self.harvest()
+            self.regrowth()
+            self.leakage()
+            self.update_strategy()
             self.t += 1
 
     def harvest(self):
@@ -83,6 +84,8 @@ class Simulation(object):
             R = self.G.node[nood]['R']
             e = self.G.node[nood]['e']
             harvest = self.q * R * e
+            # TODO: this set of conditionals isn't really necessary anymore
+            # because q, e are required to be <= 1
             if harvest > R: # case 1: fisher wants more fish than he could take
                 harvest = R
                 self.G.node[nood]['R'] = 0
@@ -116,8 +119,8 @@ class Simulation(object):
         fisher, but uniformly distributed around the effort level of the other
         fisher."""
         # TODO: update this crappy description >:(
-        fisher1 = np.random.randint(0,n_fishers + 1) # pick 2 fishers
-        fisher2 = np.random.randint(0,n_fishers + 1)
+        fisher1 = np.random.randint(0,self.n_fishers) # pick 2 fishers
+        fisher2 = np.random.randint(0,self.n_fishers)
         if self.G.node[fisher1]['pi'] < self.G.node[fisher2]['pi']:
             fisher_lo = fisher1
             fisher_hi = fisher2
@@ -153,14 +156,15 @@ def main():
         print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
     my_sim.harvest()
     print("After harvest:")
-    for nood in my_sim.G.nodes(data=False):
-        print("Payoff for node {} is {}".format(nood, my_sim.G.node[nood]['pi']))
     for i in my_sim.G.nodes(data=False):
+        print("P for node {}: {}".format(i, my_sim.G.node[i]['pi']))
         print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
     my_sim.leakage()
     print("After leakage:")
     for i in my_sim.G.nodes(data=False):
         print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
+    my_sim2 = Simulation(3, 1, 1, 1, 6, R_0, e_0, 1, 0.1, 0.1)
+    my_sim2.simulate(10)
     # TODO: Run the simulation over time, my_sim.simulate(maxstep=100) or
     # something and figure out how to graph the results on matplotlib to see
     # what happens. It'll probably be absolutely awful but we'll see.
