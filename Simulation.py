@@ -32,22 +32,38 @@ class Simulation(object):
         """Return a Simulation object with a complete graph on *n_fishers* nodes,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
+        self.check_sim_attributes(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
         self.G = nx.complete_graph(n_fishers)
         # TODO: may not be necessary to have the n_fishers data attribute
         self.n_fishers = n_fishers
         self.t = 0 # intialize time step t to 0
         self.delta = delta
+        # TODO: check that 0 <= q <= 1
         self.q = q
         self.r = r
         self.K = K
         self.price = price
         self.cost = cost
         self.noise = noise
-        # TODO: check length of R_0 and e_0 arrays, throw error if wrong
         for i in range(self.G.number_of_nodes()):
             self.G.node[i]['R'] = R_0[i]
             self.G.node[i]['e'] = e_0[i]
             self.G.node[i]['dR'] = 0.0
+
+    def check_sim_attributes(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise):
+        """Checks that values of data attributes given in parameters to 
+        constructor are in the correct format."""
+        if delta < 0 or delta > 1:
+            raise ValueError("delta must be in [0,1]")
+        if q < 0 or q > 1:
+            raise ValueError("q must be in [0,1]")
+        if np.shape(R_0)[0] != n_fishers:
+            raise ValueError("R_0 length must match n_fishers")
+        if np.shape(e_0)[0] != n_fishers:
+            raise ValueError("e_0 length must match n_fishers")
+        for i in range(np.shape(e_0)[0]):
+            if e_0[i] < 0 or e_0[i] > 1:
+                raise ValueError("entry {} in e_0 must be in [0,1]".format(i))
         
     def simulate(self, maxstep):
         """Runs a discrete simulation of the fisheries network for *maxstep*
@@ -77,8 +93,6 @@ class Simulation(object):
     def regrowth(self):
         """Updates resource R for each territory based on the fish population's
         logistic growth, occurs after the time step's harvest."""
-        # TODO: WRITE THIS
-        # something like dR = r * R * (1 - R / K) and then R = R += dR
         for nood in self.G.nodes(data=False):
             R = self.G.node[nood]['R']
             self.G.node[nood]['R'] += self.r * R * (1 - R / self.K)
@@ -122,8 +136,9 @@ class Simulation(object):
             e_new = self.G.node[fisher_hi]['e'] + diff
             if e_new < 0:
                 e_new = 0
+            elif e_new > 1:
+                e_new = 1
             self.G.node[fisher_lo]['e'] = e_new
-            # TODO: should effort be within [0,1]? Seems to be just >0 atm
         else:
             pass
 
@@ -131,14 +146,21 @@ def main():
     """Performs unit testing."""
     R_0 = np.array([2.0,4.0,6.0])
     e_0 = np.array([0.1,0.1,0.1])
-    my_sim = Simulation(3, 1, 1, 1, 10, R_0, e_0, 1, 0.1, 0.1)
-    print("Node attributes before harvest: {}".format(my_sim.G.nodes(data=True)))
+    # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
+    my_sim = Simulation(3, 1, 1, 1, 6, R_0, e_0, 1, 0.1, 0.1)
+    print("Before harvest:")
+    for i in my_sim.G.nodes(data=False):
+        print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
     my_sim.harvest()
+    print("After harvest:")
     for nood in my_sim.G.nodes(data=False):
-        print("Payoff for fisher {} is {}".format(nood, my_sim.G.node[nood]['pi']))
-    print("Node attributes after harvest, before leakage: {}".format(my_sim.G.nodes(data=True)))
+        print("Payoff for node {} is {}".format(nood, my_sim.G.node[nood]['pi']))
+    for i in my_sim.G.nodes(data=False):
+        print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
     my_sim.leakage()
-    print("Node attributes after leakage: {}".format(my_sim.G.nodes(data=True)))
+    print("After leakage:")
+    for i in my_sim.G.nodes(data=False):
+        print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
     # TODO: Run the simulation over time, my_sim.simulate(maxstep=100) or
     # something and figure out how to graph the results on matplotlib to see
     # what happens. It'll probably be absolutely awful but we'll see.
