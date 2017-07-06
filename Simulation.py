@@ -152,34 +152,33 @@ class Simulation(object):
 
 def main():
     """Performs unit testing."""
-    R_0 = np.full(50,5.0)
-    e_0 = np.linspace(0, 1, num=50)
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
-    my_sim = Simulation(50, 1, 1, 1, 6, R_0, e_0, 1, 0.1, 0.1)
-    print("Before harvest:")
-    for i in my_sim.G.nodes(data=False):
-        print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
-    my_sim.harvest()
-    print("After harvest:")
-    for i in my_sim.G.nodes(data=False):
-        print("P for node {}: {}".format(i, my_sim.G.node[i]['pi']))
-        print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
-    my_sim.leakage()
-    print("After leakage:")
-    for i in my_sim.G.nodes(data=False):
-        print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
-    n = 10
-    R_0
-    e_0 = np.random.power(2,size=(n,))
-    my_sim2 = Simulation(50, 1, 1, 1, 6, R_0, e_0, 1, 0.1, 0.01)
-    num_steps = 10000
+    n_fishers = 5
+    delta = 1
+    q = 1
+    r = 1
+    K = 6
+    R_0 = np.full(n_fishers,K/2)
+    e_0 = np.linspace(0,1,num=n_fishers)
+    price = 1
+    cost = 0.1
+    noise = 0.01
+    num_steps = 100
+    my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
     my_sim2.simulate(num_steps)
-    for i in range(my_sim2.n_fishers):
-        plt.plot(np.arange(num_steps), my_sim2.e_data[i])
+    e_avg = np.average(my_sim2.e_data, axis=0)
+    fig = plt.figure()
+    ax1 = fig.add_subplot(2,2,1)
+    ax1.plot(e_avg)
+    # for i in range(my_sim2.n_fishers):
+    #     ax1.plot(np.arange(num_steps), my_sim2.e_data[i])
+    # ax1.xlabel("Time step")
+    # ax1.ylabel("Effort")
+    ax2 = fig.add_subplot(2,2,2)
+    ax2.plot(np.average(my_sim2.R_data, axis=0))
+    print(np.shape(my_sim2.R_data))
+    print(my_sim2.R_data)
     plt.show()
-    # TODO: Run the simulation over time, my_sim.simulate(maxstep=100) or
-    # something and figure out how to graph the results on matplotlib to see
-    # what happens. It'll probably be absolutely awful but we'll see.
 
 if __name__ == "__main__":
     main()
