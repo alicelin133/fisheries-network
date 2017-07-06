@@ -77,7 +77,7 @@ class Simulation(object):
                 self.pi_data[nood][t] = self.G.node[nood]['pi']
             self.harvest()
             self.regrowth()
-            self.leakage()
+            # self.leakage()
             self.update_strategy()
             self.t += 1
 
@@ -94,6 +94,7 @@ class Simulation(object):
             if harvest > R: # case 1: fisher wants more fish than he could take
                 harvest = R
                 self.G.node[nood]['R'] = 0
+                print("Resource is {} for node {}".format(self.G.node[nood]['R'], nood))
             else: # case 2: fisher wants less fish than he could take
                 self.G.node[nood]['R'] = R - harvest
             self.G.node[nood]['pi'] = self.price * harvest - self.cost * e
@@ -103,20 +104,25 @@ class Simulation(object):
         logistic growth, occurs after the time step's harvest."""
         for nood in self.G.nodes(data=False):
             R = self.G.node[nood]['R']
-            self.G.node[nood]['R'] += self.r * R * (1 - R / self.K)
+            self.G.node[nood]['R'] += self.r * R * (1 - R/self.K)
             
     def leakage(self):
         """Updates resource R for each territory based on resource leakage
         between territories. Each territory i gives (delta * R / self.G.degree(i))
         amount of resource to each of its adjacent territories."""
+        # calculate how much fish go to each territory
         for nood in self.G.nodes(data=False):
             R = self.G.node[nood]['R']
+            deg = self.G.degree(nood)
             for neighbor in self.G[nood]:
-                self.G.node[neighbor]['dR'] += R * self.delta / (self.G.degree(nood) + 1)
+                self.G.node[neighbor]['dR'] += R / (deg + 1)
+        # update resource levels for each territory
         for nood in self.G.nodes(data=False):
-            self.G.node[nood]['R'] = self.G.node[nood]['R'] * (1 - self.delta) + \
-            self.delta * self.G.node[nood]['R'] / (self.G.degree(nood) + 1) + \
-            self.G.node[nood]['dR']
+            R = self.G.node[nood]['R']
+            deg = self.G.degree(nood)
+            dR = self.G.node[nood]['dR']
+            R_new = R * (1 - self.delta * deg / (deg + 1)) + dR
+            self.G.node[nood]['R'] = R_new
     
     def update_strategy(self):
         """Selects two fishers randomly to compare payoff pi. The fisher with
@@ -153,32 +159,26 @@ class Simulation(object):
 def main():
     """Performs unit testing."""
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
-    n_fishers = 5
+    n_fishers = 3
     delta = 1
-    q = 1
-    r = 1
-    K = 6
-    R_0 = np.full(n_fishers,K/2)
-    e_0 = np.linspace(0,1,num=n_fishers)
+    q = 0.5
+    r = 0.05
+    K = 200
+    # R_0 = np.full(n_fishers,K/2)
+    R_0 = np.array([50, 100, 150])
+    e_0 = np.linspace(0.01,0.05,num=n_fishers)
     price = 1
     cost = 0.1
-    noise = 0.01
-    num_steps = 100
+    noise = 0.0005
+    num_steps = 1000
     my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
-    my_sim2.simulate(num_steps)
-    e_avg = np.average(my_sim2.e_data, axis=0)
-    fig = plt.figure()
-    ax1 = fig.add_subplot(2,2,1)
-    ax1.plot(e_avg)
+    my_sim2.leakage()
+    # my_sim2.simulate(num_steps)
+    # e_avg = np.average(my_sim2.e_data, axis=0)
     # for i in range(my_sim2.n_fishers):
-    #     ax1.plot(np.arange(num_steps), my_sim2.e_data[i])
-    # ax1.xlabel("Time step")
-    # ax1.ylabel("Effort")
-    ax2 = fig.add_subplot(2,2,2)
-    ax2.plot(np.average(my_sim2.R_data, axis=0))
-    print(np.shape(my_sim2.R_data))
-    print(my_sim2.R_data)
-    plt.show()
+    #     plt.plot(np.arange(num_steps), my_sim2.R_data[i])
+    # print(my_sim2.R_data)
+    # plt.show()
 
 if __name__ == "__main__":
     main()
