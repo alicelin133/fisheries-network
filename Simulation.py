@@ -77,7 +77,7 @@ class Simulation(object):
                 self.pi_data[nood][t] = self.G.node[nood]['pi']
             self.harvest()
             self.regrowth()
-            # self.leakage()
+            self.leakage()
             self.update_strategy()
             self.t += 1
 
@@ -121,8 +121,9 @@ class Simulation(object):
             R = self.G.node[nood]['R']
             deg = self.G.degree(nood)
             dR = self.G.node[nood]['dR']
-            R_new = R * (1 - self.delta * deg / (deg + 1)) + dR
+            R_new = R * (1 - self.delta * deg / (deg + 1)) + self.delta * dR
             self.G.node[nood]['R'] = R_new
+            self.G.node[nood]['dR'] = 0 # RESET dR TO 0 FOR EACH NODE
     
     def update_strategy(self):
         """Selects two fishers randomly to compare payoff pi. The fisher with
@@ -143,7 +144,10 @@ class Simulation(object):
             pi_lo = self.G.node[fisher2]['pi']
             pi_hi = self.G.node[fisher1]['pi']
         # Probability that lo-payoff fisher switches to hi-p fisher's strategy
-        switch_prob = (pi_hi - pi_lo) / (abs(pi_hi) + abs(pi_lo))
+        if pi_hi != 0 or pi_lo != 0:
+            switch_prob = (pi_hi - pi_lo) / (abs(pi_hi) + abs(pi_lo))
+        else:
+            switch_prob = 0 # in case both payoffs are 0
         prob = np.random.random()
         if prob < switch_prob:
             diff = np.random.uniform(-1 * self.noise, self.noise)
@@ -159,26 +163,24 @@ class Simulation(object):
 def main():
     """Performs unit testing."""
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
-    n_fishers = 3
-    delta = 1
+    n_fishers = 10
+    delta = 0
     q = 0.5
     r = 0.05
     K = 200
     # R_0 = np.full(n_fishers,K/2)
-    R_0 = np.array([50, 100, 150])
+    R_0 = np.full(n_fishers,K/2)
     e_0 = np.linspace(0.01,0.05,num=n_fishers)
     price = 1
     cost = 0.1
     noise = 0.0005
     num_steps = 1000
     my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
-    my_sim2.leakage()
-    # my_sim2.simulate(num_steps)
-    # e_avg = np.average(my_sim2.e_data, axis=0)
-    # for i in range(my_sim2.n_fishers):
-    #     plt.plot(np.arange(num_steps), my_sim2.R_data[i])
-    # print(my_sim2.R_data)
-    # plt.show()
+    my_sim2.simulate(num_steps)
+    e_avg = np.average(my_sim2.e_data, axis=0)
+    for i in range(my_sim2.n_fishers):
+        plt.plot(np.arange(num_steps), my_sim2.R_data[i])
+    plt.show()
 
 if __name__ == "__main__":
     main()
