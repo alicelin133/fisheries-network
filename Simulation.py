@@ -47,6 +47,7 @@ class Simulation(object):
             self.G.node[i]['R'] = R_0[i]
             self.G.node[i]['e'] = e_0[i]
             self.G.node[i]['dR'] = 0.0
+            self.G.node[i]['pi'] = 0.0
 
     def check_sim_attributes(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise):
         """Checks that values of data attributes given in parameters to 
@@ -66,10 +67,14 @@ class Simulation(object):
     def simulate(self, maxstep):
         """Runs a discrete simulation of the fisheries network for *maxstep*
         time steps."""
-        e_data = np.zeros((self.n_fishers, maxstep))
-        R_data = np.zeros((self.n_fishers, maxstep))
-        pi_data = np.zeros((self.n_fishers, maxstep))
-        for j in range(maxstep):
+        self.e_data = np.zeros((self.n_fishers, maxstep))
+        self.R_data = np.zeros((self.n_fishers, maxstep))
+        self.pi_data = np.zeros((self.n_fishers, maxstep))
+        for t in range(maxstep):
+            for nood in self.G.nodes(data=False):
+                self.e_data[nood][t] = self.G.node[nood]['e']
+                self.R_data[nood][t] = self.G.node[nood]['R']
+                self.pi_data[nood][t] = self.G.node[nood]['pi']
             self.harvest()
             self.regrowth()
             self.leakage()
@@ -147,10 +152,10 @@ class Simulation(object):
 
 def main():
     """Performs unit testing."""
-    R_0 = np.array([2.0,4.0,6.0])
-    e_0 = np.array([0.1,0.1,0.1])
+    R_0 = np.full(50,5.0)
+    e_0 = np.linspace(0, 1, num=50)
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
-    my_sim = Simulation(3, 1, 1, 1, 6, R_0, e_0, 1, 0.1, 0.1)
+    my_sim = Simulation(50, 1, 1, 1, 6, R_0, e_0, 1, 0.1, 0.1)
     print("Before harvest:")
     for i in my_sim.G.nodes(data=False):
         print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
@@ -163,8 +168,15 @@ def main():
     print("After leakage:")
     for i in my_sim.G.nodes(data=False):
         print("R for node {}: {}".format(i, my_sim.G.node[i]['R']))
-    my_sim2 = Simulation(3, 1, 1, 1, 6, R_0, e_0, 1, 0.1, 0.1)
-    my_sim2.simulate(10)
+    n = 10
+    R_0
+    e_0 = np.random.power(2,size=(n,))
+    my_sim2 = Simulation(50, 1, 1, 1, 6, R_0, e_0, 1, 0.1, 0.01)
+    num_steps = 10000
+    my_sim2.simulate(num_steps)
+    for i in range(my_sim2.n_fishers):
+        plt.plot(np.arange(num_steps), my_sim2.e_data[i])
+    plt.show()
     # TODO: Run the simulation over time, my_sim.simulate(maxstep=100) or
     # something and figure out how to graph the results on matplotlib to see
     # what happens. It'll probably be absolutely awful but we'll see.
