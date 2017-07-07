@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.switch_backend('Qt5Agg')
 
+import time
+
 class Simulation(object):
     """A network of territories of fishers, where each territory harvests fish,
     and fish move between territories. The network has the following properties:
@@ -128,9 +130,8 @@ class Simulation(object):
     def update_strategy(self):
         """Selects two fishers randomly to compare payoff pi. The fisher with
         the lower payoff changes effort level to that of the higher-payoff
-        fisher, but uniformly distributed around the effort level of the other
-        fisher."""
-        # TODO: update this crappy description >:(
+        fisher, but with some noise, which is uniformly distributed in a fixed
+        interval."""
         fisher1 = np.random.randint(0,self.n_fishers) # pick 2 fishers
         fisher2 = np.random.randint(0,self.n_fishers)
         if self.G.node[fisher1]['pi'] < self.G.node[fisher2]['pi']:
@@ -152,6 +153,7 @@ class Simulation(object):
         if prob < switch_prob:
             diff = np.random.uniform(-1 * self.noise, self.noise)
             e_new = self.G.node[fisher_hi]['e'] + diff
+            # ensure that e_new stays in [0,1]
             if e_new < 0:
                 e_new = 0
             elif e_new > 1:
@@ -162,25 +164,41 @@ class Simulation(object):
 
 def main():
     """Performs unit testing."""
+    start_time = time.time()        
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
-    n_fishers = 10
-    delta = 0
+    n_fishers = 20
+    delta = 1
     q = 0.5
     r = 0.05
     K = 200
-    # R_0 = np.full(n_fishers,K/2)
     R_0 = np.full(n_fishers,K/2)
-    e_0 = np.linspace(0.01,0.05,num=n_fishers)
+    e_0 = np.linspace(0,0.04,num=n_fishers)
     price = 1
     cost = 0.1
     noise = 0.0005
-    num_steps = 1000
+    num_steps = 1000000
     my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
     my_sim2.simulate(num_steps)
-    e_avg = np.average(my_sim2.e_data, axis=0)
+    fig = plt.figure()
+    plt.suptitle("Full fish movement")
+    # Plotting resource levels vs. time
+    ax1 = fig.add_subplot(1,2,1)
     for i in range(my_sim2.n_fishers):
-        plt.plot(np.arange(num_steps), my_sim2.R_data[i])
-    plt.show()
-
+        ax1.plot(np.arange(num_steps), my_sim2.R_data[i])
+    ax1.set_xlabel("Time step")
+    ax1.set_ylabel("Resource (K = {})".format(my_sim2.K))
+    ax1.set_title("Territory Resource Levels vs. Time")
+    fig.subplots_adjust(wspace=0.4)
+    # Plotting avg effort vs. time
+    e_avg = np.average(my_sim2.e_data, axis=0)
+    ax2 = fig.add_subplot(1,2,2)
+    ax2.plot(np.arange(num_steps), e_avg)
+    ax2.set_xlabel("Time steps")
+    ax2.set_ylabel("Effort")
+    ax2.set_title("Average Effort vs. Time")
+    print("Last time step avg effort: {}".format(e_avg[-1]))
+    print("--- %s seconds ---" % (time.time() - start_time))
+    plt.show()    
+        
 if __name__ == "__main__":
     main()
