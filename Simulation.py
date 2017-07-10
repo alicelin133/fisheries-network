@@ -131,53 +131,63 @@ class Simulation(object):
         """Selects two fishers randomly to compare payoff pi. The fisher with
         the lower payoff changes effort level to that of the higher-payoff
         fisher, but with some noise, which is uniformly distributed in a fixed
-        interval."""
-        fisher1 = np.random.randint(0,self.n_fishers) # pick 2 fishers
-        fisher2 = np.random.randint(0,self.n_fishers)
-        if self.G.node[fisher1]['pi'] < self.G.node[fisher2]['pi']:
-            fisher_lo = fisher1
-            fisher_hi = fisher2
-            pi_lo = self.G.node[fisher1]['pi']
-            pi_hi = self.G.node[fisher2]['pi']
-        else: # note that this case occurs when they have equal payoffs
-            fisher_lo = fisher2
-            fisher_hi = fisher1
-            pi_lo = self.G.node[fisher2]['pi']
-            pi_hi = self.G.node[fisher1]['pi']
-        # Probability that lo-payoff fisher switches to hi-p fisher's strategy
-        if pi_hi != 0 or pi_lo != 0:
-            switch_prob = (pi_hi - pi_lo) / (abs(pi_hi) + abs(pi_lo))
-        else:
-            switch_prob = 0 # in case both payoffs are 0
-        prob = np.random.random()
-        if prob < switch_prob:
-            diff = np.random.uniform(-1 * self.noise, self.noise)
-            e_new = self.G.node[fisher_hi]['e'] + diff
-            # ensure that e_new stays in [0,1]
-            if e_new < 0:
-                e_new = 0
-            elif e_new > 1:
-                e_new = 1
-            self.G.node[fisher_lo]['e'] = e_new
-        else:
-            pass
+        interval. Repeat process self.n_fishers times"""
+
+        """POSSIBLE FUTURE METHOD: Selects one fisher randomly for possible
+        replication. Selects a second fisher to compare payoff against. If 2nd
+        fisher has lower payoff, do nothing. If 2nd fisher has higher payoff,
+        1st fisher switches to effort level of 2nd fisher with prob.
+        proportional to difference of payoffs."""
+        for i in range(self.n_fishers): # initialize e_new attribute
+            self.G.node[i]['e_new'] = self.G.node[i]['e']
+        for i in range(self.n_fishers): # pick a pair self.n_fishers times
+            fisher1 = np.random.randint(0,self.n_fishers)
+            fisher2 = np.random.randint(0,self.n_fishers)
+            if self.G.node[fisher1]['pi'] < self.G.node[fisher2]['pi']:
+                fisher_lo = fisher1
+                fisher_hi = fisher2
+                pi_lo = self.G.node[fisher1]['pi']
+                pi_hi = self.G.node[fisher2]['pi']
+            else: # note that this case occurs when they have equal payoffs
+                fisher_lo = fisher2
+                fisher_hi = fisher1
+                pi_lo = self.G.node[fisher2]['pi']
+                pi_hi = self.G.node[fisher1]['pi']
+            # Probability that lo-payoff fisher switches to hi-p fisher's strategy
+            if pi_hi != 0 or pi_lo != 0:
+                switch_prob = (pi_hi - pi_lo) / (abs(pi_hi) + abs(pi_lo))
+            else:
+                switch_prob = 0 # in case both payoffs are 0
+            prob = np.random.random()
+            if prob < switch_prob:
+                diff = np.random.uniform(-1 * self.noise, self.noise)
+                e_new = self.G.node[fisher_hi]['e'] + diff
+                # ensure that e_new stays in [0,1]
+                if e_new < 0:
+                    e_new = 0
+                elif e_new > 1:
+                    e_new = 1
+                self.G.node[fisher_lo]['e_new'] = e_new
+        for i in range(self.n_fishers):
+            self.G.node[i]['e'] = self.G.node[i]['e_new']
+            
 
 def main():
     """Performs unit testing."""
     start_time = time.time()        
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
     n_fishers = 10
-    delta = 1
+    delta = 0
     q = 0.5
     r = 0.05
-    K = 200
-    R_0 = np.full(n_fishers,K)
+    K = 10000
+    R_0 = np.full(n_fishers,K/2)
     e_0 = np.linspace(0,1,num=n_fishers)
     # e_0 = np.full(n_fishers,0.005)
     price = 1
     cost = 0.8
     noise = 0.0005
-    num_steps = 400000
+    num_steps = 100
     my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
     my_sim2.simulate(num_steps)
     fig = plt.figure()
