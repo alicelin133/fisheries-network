@@ -166,15 +166,16 @@ def main():
     """Performs unit testing."""
     start_time = time.time()        
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
-    n_fishers = 20
+    n_fishers = 10
     delta = 1
     q = 0.5
     r = 0.05
     K = 200
     R_0 = np.full(n_fishers,K/2)
-    e_0 = np.linspace(0,0.04,num=n_fishers)
+    e_0 = np.linspace(0,1,num=n_fishers)
+    #e_0 = np.full(n_fishers,0.005)
     price = 1
-    cost = 0.1
+    cost = 0.8
     noise = 0.0005
     num_steps = 1000000
     my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
@@ -182,7 +183,7 @@ def main():
     fig = plt.figure()
     plt.suptitle("Full fish movement")
     # Plotting resource levels vs. time
-    ax1 = fig.add_subplot(1,2,1)
+    ax1 = fig.add_subplot(1,3,1)
     for i in range(my_sim2.n_fishers):
         ax1.plot(np.arange(num_steps), my_sim2.R_data[i])
     ax1.set_xlabel("Time step")
@@ -191,13 +192,26 @@ def main():
     fig.subplots_adjust(wspace=0.4)
     # Plotting avg effort vs. time
     e_avg = np.average(my_sim2.e_data, axis=0)
-    ax2 = fig.add_subplot(1,2,2)
+    ax2 = fig.add_subplot(1,3,2)
     ax2.plot(np.arange(num_steps), e_avg)
     ax2.set_xlabel("Time steps")
     ax2.set_ylabel("Effort")
     ax2.set_title("Average Effort vs. Time")
+    # Plotting avg payoff vs. time
+    pi_avg = np.average(my_sim2.pi_data, axis=0)
+    ax3 = fig.add_subplot(1,3,3)
+    ax3.plot(np.arange(num_steps), pi_avg)
+    ax3.set_xlabel("Time steps")
+    ax3.set_ylabel("Average payoff")
+    ax3.set_title("Average Payoff vs. Time")
+
     print("Last time step avg effort: {}".format(e_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
+    # saving data to txt file
+    # TODO: ask for input Y/N for whether to save data 
+    # run = "1"
+    # np.savetxt("/Users/alicelin/Documents/fish/fisheries-network/data/e_{}.txt".format(run),
+    #     my_sim2.e_data, fmt='10.5', header='IDK')
     plt.show()    
         
 if __name__ == "__main__":
