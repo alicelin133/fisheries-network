@@ -171,13 +171,13 @@ def main():
     q = 0.5
     r = 0.05
     K = 200
-    R_0 = np.full(n_fishers,K/2)
+    R_0 = np.full(n_fishers,K)
     e_0 = np.linspace(0,1,num=n_fishers)
-    #e_0 = np.full(n_fishers,0.005)
+    # e_0 = np.full(n_fishers,0.005)
     price = 1
     cost = 0.8
     noise = 0.0005
-    num_steps = 1000000
+    num_steps = 400000
     my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
     my_sim2.simulate(num_steps)
     fig = plt.figure()
@@ -212,6 +212,8 @@ def main():
     # run = "1"
     # np.savetxt("/Users/alicelin/Documents/fish/fisheries-network/data/e_{}.txt".format(run),
     #     my_sim2.e_data, fmt='10.5', header='IDK')
+
+    # does this show up in test branch
     plt.show()    
         
 if __name__ == "__main__":
