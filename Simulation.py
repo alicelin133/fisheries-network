@@ -128,102 +128,109 @@ class Simulation(object):
             self.G.node[nood]['dR'] = 0 # RESET dR TO 0 FOR EACH NODE
     
     def update_strategy(self):
-        """Selects two fishers randomly to compare payoff pi. The fisher with
-        the lower payoff changes effort level to that of the higher-payoff
-        fisher, but with some noise, which is uniformly distributed in a fixed
-        interval. Repeat process self.n_fishers times"""
-
-        """POSSIBLE FUTURE METHOD: Selects one fisher randomly for possible
-        replication. Selects a second fisher to compare payoff against. If 2nd
+        """Selects one fisher randomly for possible strategy change. With
+        small probability, new strategy is randomly chosen from [0,1].
+        Otherwise, select a second fisher to compare payoff against. If 2nd
         fisher has lower payoff, do nothing. If 2nd fisher has higher payoff,
         1st fisher switches to effort level of 2nd fisher with prob.
-        proportional to difference of payoffs."""
+        proportional to difference of payoffs, and with some noise. Repeat
+        process self.n_fishers times."""
         for i in range(self.n_fishers): # initialize e_new attribute
             self.G.node[i]['e_new'] = self.G.node[i]['e']
         for i in range(self.n_fishers): # pick a pair self.n_fishers times
             fisher1 = np.random.randint(0,self.n_fishers)
             fisher2 = np.random.randint(0,self.n_fishers)
-            if self.G.node[fisher1]['pi'] < self.G.node[fisher2]['pi']:
-                fisher_lo = fisher1
-                fisher_hi = fisher2
-                pi_lo = self.G.node[fisher1]['pi']
-                pi_hi = self.G.node[fisher2]['pi']
-            else: # note that this case occurs when they have equal payoffs
-                fisher_lo = fisher2
-                fisher_hi = fisher1
-                pi_lo = self.G.node[fisher2]['pi']
-                pi_hi = self.G.node[fisher1]['pi']
-            # Probability that lo-payoff fisher switches to hi-p fisher's strategy
-            if pi_hi != 0 or pi_lo != 0:
-                switch_prob = (pi_hi - pi_lo) / (abs(pi_hi) + abs(pi_lo))
+            pi1 = self.G.node[fisher1]['pi']
+            # global mutation
+            prob_mutation = 2.0/self.n_fishers
+            rand = np.random.random()
+            if rand < prob_mutation:
+                self.G.node[fisher1]['e_new'] = np.random.random()
             else:
-                switch_prob = 0 # in case both payoffs are 0
-            prob = np.random.random()
-            if prob < switch_prob:
-                diff = np.random.uniform(-1 * self.noise, self.noise)
-                e_new = self.G.node[fisher_hi]['e'] + diff
-                # ensure that e_new stays in [0,1]
-                if e_new < 0:
-                    e_new = 0
-                elif e_new > 1:
-                    e_new = 1
-                self.G.node[fisher_lo]['e_new'] = e_new
+                pi2 = self.G.node[fisher2]['pi']
+                if pi1 < pi2:
+                    if pi1 != 0 or pi2 != 0:
+                        # Probability that fisher1 switches to fisher2's strategy
+                        prob_switch = (pi2 - pi1) / (abs(pi1) + abs(pi2))
+                    else:
+                        prob_switch = 0 # in case both payoffs are 0
+                    rand = np.random.random()
+                    if rand < prob_switch:
+                        diff = np.random.uniform(-1 * self.noise, self.noise)
+                        e_new = self.G.node[fisher2]['e'] + diff
+                        # ensure that e_new stays in [0,1]
+                        if e_new < 0:
+                            e_new = 0
+                        elif e_new > 1:
+                            e_new = 1
+                        self.G.node[fisher1]['e_new'] = e_new
         for i in range(self.n_fishers):
             self.G.node[i]['e'] = self.G.node[i]['e_new']
             
-
 def main():
     """Performs unit testing."""
     start_time = time.time()        
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
     n_fishers = 10
-    delta = 0
-    q = 0.5
+    delta = 1
+    q = 1
     r = 0.05
-    K = 10000
+    K = 1000
     R_0 = np.full(n_fishers,K/2)
     e_0 = np.linspace(0,1,num=n_fishers)
-    # e_0 = np.full(n_fishers,0.005)
+    # e_0 = np.full(n_fishers,0.04)
     price = 1
     cost = 0.8
-    noise = 0.0005
+    noise = 0.01
     num_steps = 100
+    # Creating Simulation object
     my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
     my_sim2.simulate(num_steps)
     fig = plt.figure()
     plt.suptitle("Full fish movement")
     # Plotting resource levels vs. time
-    ax1 = fig.add_subplot(1,3,1)
+    ax1 = fig.add_subplot(2,2,1)
     for i in range(my_sim2.n_fishers):
         ax1.plot(np.arange(num_steps), my_sim2.R_data[i])
     ax1.set_xlabel("Time step")
     ax1.set_ylabel("Resource (K = {})".format(my_sim2.K))
     ax1.set_title("Territory Resource Levels vs. Time")
-    fig.subplots_adjust(wspace=0.4)
-    # Plotting avg effort vs. time
-    e_avg = np.average(my_sim2.e_data, axis=0)
-    ax2 = fig.add_subplot(1,3,2)
-    ax2.plot(np.arange(num_steps), e_avg)
-    ax2.set_xlabel("Time steps")
-    ax2.set_ylabel("Effort")
-    ax2.set_title("Average Effort vs. Time")
+    fig.subplots_adjust(wspace=0.3, hspace=0.4)
     # Plotting avg payoff vs. time
     pi_avg = np.average(my_sim2.pi_data, axis=0)
-    ax3 = fig.add_subplot(1,3,3)
-    ax3.plot(np.arange(num_steps), pi_avg)
+    ax2 = fig.add_subplot(2,2,2)
+    ax2.plot(np.arange(num_steps), pi_avg)
+    ax2.set_xlabel("Time steps")
+    ax2.set_ylabel("Average payoff")
+    ax2.set_title("Average Payoff vs. Time")
+    # Plotting avg effort vs. time
+    e_avg = np.average(my_sim2.e_data, axis=0)
+    ax3 = fig.add_subplot(2,2,3)
+    ax3.plot(np.arange(num_steps), e_avg)
     ax3.set_xlabel("Time steps")
-    ax3.set_ylabel("Average payoff")
-    ax3.set_title("Average Payoff vs. Time")
+    ax3.set_ylabel("Effort")
+    ax3.set_title("Average Effort vs. Time")
+    # Plotting all efforts vs. time
+    ax4 = fig.add_subplot(2,2,4)
+    for i in range(my_sim2.n_fishers):
+        ax4.plot(my_sim2.e_data[i])
+    ax4.set_xlabel("Time steps")
+    ax4.set_ylabel("Effort")
+    ax4.set_title("Effort vs. Time")
+    # Plotting standard deviation of effort over time
+    fig2 = plt.figure()
+    e_stddev = np.std(my_sim2.e_data, axis=0)
+    ax = fig2.add_subplot(1,1,1)
+    ax.plot(e_stddev)
+    plt.grid(b=True)
 
-    print("Last time step avg effort: {}".format(e_avg[-1]))
+    print("Last time step avg payoff: {}".format(pi_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
     # saving data to txt file
     # TODO: ask for input Y/N for whether to save data 
     # run = "1"
     # np.savetxt("/Users/alicelin/Documents/fish/fisheries-network/data/e_{}.txt".format(run),
     #     my_sim2.e_data, fmt='10.5', header='IDK')
-
-    # does this show up in test branch
     plt.show()    
         
 if __name__ == "__main__":
