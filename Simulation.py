@@ -142,10 +142,10 @@ class Simulation(object):
             fisher2 = np.random.randint(0,self.n_fishers)
             pi1 = self.G.node[fisher1]['pi']
             # global mutation
-            prob_mutation = 2.0/self.n_fishers
+            prob_mutation = 0
             rand = np.random.random()
             if rand < prob_mutation:
-                self.G.node[fisher1]['e_new'] = np.random.random()
+                self.G.node[fisher1]['e_new'] = np.random.random() * self.r
             else:
                 pi2 = self.G.node[fisher2]['pi']
                 if pi1 < pi2:
@@ -172,17 +172,17 @@ def main():
     start_time = time.time()        
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
     n_fishers = 10
-    delta = 1
+    delta = 0.001
     q = 1
     r = 0.05
     K = 1000
     R_0 = np.full(n_fishers,K/2)
-    e_0 = np.linspace(0,1,num=n_fishers)
-    # e_0 = np.full(n_fishers,0.04)
+    # e_0 = np.linspace(0,0.05,num=n_fishers)
+    e_c = np.full(n_fishers,)
     price = 1
-    cost = 0.8
+    cost = 0.5
     noise = 0.01
-    num_steps = 100
+    num_steps = 1000
     # Creating Simulation object
     my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
     my_sim2.simulate(num_steps)
@@ -195,7 +195,7 @@ def main():
     ax1.set_xlabel("Time step")
     ax1.set_ylabel("Resource (K = {})".format(my_sim2.K))
     ax1.set_title("Territory Resource Levels vs. Time")
-    fig.subplots_adjust(wspace=0.3, hspace=0.4)
+    ax1.grid(True)
     # Plotting avg payoff vs. time
     pi_avg = np.average(my_sim2.pi_data, axis=0)
     ax2 = fig.add_subplot(2,2,2)
@@ -203,6 +203,7 @@ def main():
     ax2.set_xlabel("Time steps")
     ax2.set_ylabel("Average payoff")
     ax2.set_title("Average Payoff vs. Time")
+    ax2.grid(True)
     # Plotting avg effort vs. time
     e_avg = np.average(my_sim2.e_data, axis=0)
     ax3 = fig.add_subplot(2,2,3)
@@ -210,6 +211,7 @@ def main():
     ax3.set_xlabel("Time steps")
     ax3.set_ylabel("Effort")
     ax3.set_title("Average Effort vs. Time")
+    ax3.grid(True)
     # Plotting all efforts vs. time
     ax4 = fig.add_subplot(2,2,4)
     for i in range(my_sim2.n_fishers):
@@ -217,14 +219,19 @@ def main():
     ax4.set_xlabel("Time steps")
     ax4.set_ylabel("Effort")
     ax4.set_title("Effort vs. Time")
+    ax4.grid(True)
+    fig.subplots_adjust(wspace=0.3, hspace=0.4)
     # Plotting standard deviation of effort over time
     fig2 = plt.figure()
     e_stddev = np.std(my_sim2.e_data, axis=0)
     ax = fig2.add_subplot(1,1,1)
     ax.plot(e_stddev)
+    ax.set_xlabel("Time step")
+    ax.set_ylabel("Standard deviation of effort")
     plt.grid(b=True)
 
     print("Last time step avg payoff: {}".format(pi_avg[-1]))
+    print("Last time step avg effort: {}".format(e_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
     # saving data to txt file
     # TODO: ask for input Y/N for whether to save data 
@@ -232,6 +239,6 @@ def main():
     # np.savetxt("/Users/alicelin/Documents/fish/fisheries-network/data/e_{}.txt".format(run),
     #     my_sim2.e_data, fmt='10.5', header='IDK')
     plt.show()    
-        
+    
 if __name__ == "__main__":
     main()
