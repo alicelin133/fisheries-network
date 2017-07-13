@@ -8,24 +8,23 @@ import Simulation
 start_time = time.time()
 
 # Assigning parameter values
-n_fishers = 2
+n_fishers = 10
 delta = 1
 q = 1
-r = 0.05
-K = 1000
+r = 0.01
+K = 5000
 price = 1
 cost = 0.5
 noise = 0
 num_steps = 10000
-R_0 = np.full(n_fishers,K/2)
+R_0 = np.full(n_fishers,K)
 # creating initial distribution of cooperators and defectors
-f_c = 0
+f_c = 1
 e_c = r * (price * q * K - cost) / (2 * price * q * q * K * n_fishers)
 e_d = e_c * 2 * n_fishers / (n_fishers + 1)
 num_c = round(f_c * n_fishers)
 num_d = n_fishers - num_c
 e_0 = np.concatenate((np.full(num_c, e_c), np.full(num_d, e_d)), axis=0)
-
 
 # Creating Simulation object
 sim = Simulation.Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
@@ -74,11 +73,8 @@ fig.subplots_adjust(wspace=0.3, hspace=0.4)
 
 print("Last time step avg payoff: {}".format(pi_avg[-1]))
 print("Last time step avg effort: {}".format(e_avg[-1]))
+print("Last time step avg R: {}".format(np.average(sim.R_data[-1])))
+R_theory = K * (1 - q * e_d * n_fishers / r)
+print("Theoretical R: {}".format(R_theory))
 print("--- %s seconds ---" % (time.time() - start_time))
-
-# Saving data to txt file
-# TODO: ask for input Y/N for whether to save data 
-# run = "1"
-# np.savetxt("/Users/alicelin/Documents/fish/fisheries-network/data/e_{}.txt".format(run),
-#     sim.e_data, fmt='10.5', header='IDK')
 plt.show()
