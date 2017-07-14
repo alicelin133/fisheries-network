@@ -23,6 +23,7 @@ class Simulation(object):
         price: float, price received per unit of fish
         cost: float, cost per unit of effort invested in fishing
         noise: float, switching strategies occurs with +/- *noise*
+        num_regrowth: int, number of cycles of harvest/regrowth per time step
     Node (territory) attributes:
         R: float, territory's resource level
         e: float, territory's effort level
@@ -30,7 +31,7 @@ class Simulation(object):
         pi: float, territory's payoff from current time step
     """
 
-    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise):
+    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_regrowth):
         """Return a Simulation object with a complete graph on *n_fishers* nodes,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
@@ -45,6 +46,7 @@ class Simulation(object):
         self.price = price
         self.cost = cost
         self.noise = noise
+        self.num_regrowth = num_regrowth
         for i in range(self.G.number_of_nodes()):
             self.G.node[i]['R'] = R_0[i]
             self.G.node[i]['e'] = e_0[i]
@@ -69,6 +71,7 @@ class Simulation(object):
     def simulate(self, maxstep):
         """Runs a discrete simulation of the fisheries network for *maxstep*
         time steps."""
+        # e_data[nood][t] = e of node nood at time step t
         self.e_data = np.zeros((self.n_fishers, maxstep))
         self.R_data = np.zeros((self.n_fishers, maxstep))
         self.pi_data = np.zeros((self.n_fishers, maxstep))
@@ -77,8 +80,9 @@ class Simulation(object):
                 self.e_data[nood][t] = self.G.node[nood]['e']
                 self.R_data[nood][t] = self.G.node[nood]['R']
                 self.pi_data[nood][t] = self.G.node[nood]['pi']
-            self.harvest()
-            self.regrowth()
+            for i in range(self.num_regrowth):
+                self.harvest()
+                self.regrowth()
             self.leakage()
             self.update_strategy()
             self.t += 1
@@ -91,8 +95,6 @@ class Simulation(object):
             R = self.G.node[nood]['R']
             e = self.G.node[nood]['e']
             harvest = self.q * R * e
-            # TODO: this set of conditionals isn't really necessary anymore
-            # because q, e are required to be <= 1
             if harvest > R: # case 1: fisher wants more fish than he could take
                 harvest = R
                 self.G.node[nood]['R'] = 0
@@ -104,9 +106,9 @@ class Simulation(object):
     def regrowth(self):
         """Updates resource R for each territory based on the fish population's
         logistic growth, occurs after the time step's harvest."""
-        for nood in self.G.nodes(data=False):
-            R = self.G.node[nood]['R']
-            self.G.node[nood]['R'] += self.r * R * (1 - R/self.K)
+        for i in self.G.nodes(data=False):
+            R = self.G.node[i]['R']
+            self.G.node[i]['R'] = R + self.r * R * (1 - R/self.K)
             
     def leakage(self):
         """Updates resource R for each territory based on resource leakage
@@ -137,7 +139,7 @@ class Simulation(object):
         process self.n_fishers times."""
         for i in range(self.n_fishers): # initialize e_new attribute
             self.G.node[i]['e_new'] = self.G.node[i]['e']
-        for i in range(self.n_fishers): # pick a pair self.n_fishers times
+        for i in range(1):
             fisher1 = np.random.randint(0,self.n_fishers)
             fisher2 = np.random.randint(0,self.n_fishers)
             pi1 = self.G.node[fisher1]['pi']
@@ -177,14 +179,14 @@ def main():
     r = 0.05
     K = 1000
     R_0 = np.full(n_fishers,K/2)
-    # e_0 = np.linspace(0,0.05,num=n_fishers)
-    e_c = np.full(n_fishers,)
+    e_0 = np.linspace(0,0.05,num=n_fishers)
     price = 1
     cost = 0.5
     noise = 0.01
+    num_regrowth = 1
     num_steps = 1000
     # Creating Simulation object
-    my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise)
+    my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_regrowth)
     my_sim2.simulate(num_steps)
     fig = plt.figure()
     plt.suptitle("Full fish movement")
@@ -233,11 +235,6 @@ def main():
     print("Last time step avg payoff: {}".format(pi_avg[-1]))
     print("Last time step avg effort: {}".format(e_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
-    # saving data to txt file
-    # TODO: ask for input Y/N for whether to save data 
-    # run = "1"
-    # np.savetxt("/Users/alicelin/Documents/fish/fisheries-network/data/e_{}.txt".format(run),
-    #     my_sim2.e_data, fmt='10.5', header='IDK')
     plt.show()    
     
 if __name__ == "__main__":

@@ -8,32 +8,31 @@ import Simulation
 start_time = time.time()
 
 # Assigning parameter values
-n_fishers = 10
+n_fishers = 100
 delta = 0
-q = 1
 r = 0.01
+q = 1
 K = 5000 / n_fishers
+K_tot = 5000
 price = 1
-cost = 0.5
-noise = 0
-num_regrowth = 10
-num_steps = 10000
+cost = 0
+noise = 0.0005
+num_regrowth = 2
+num_steps = 500
 R_0 = np.full(n_fishers,K)
-# creating initial distribution across 2 effort levels
-f_msy = 0.5
-e_msy = r * (price * q * K * n_fishers - n_fishers * cost) / (2 * price * q * q * K * n_fishers)
+# creating initial distribution of effort
+e_msy = r * (price * q * K_tot - n_fishers * cost) / (2 * price * q * q * K_tot)
 print("e_msy = {}".format(e_msy))
 e_nash = e_msy * 2 * n_fishers / (1 + n_fishers)
 print("e_nash = {}".format(e_nash))
-num_msy = round(f_msy * n_fishers)
-num_nash = n_fishers - num_msy
-e_0 = np.concatenate((np.full(num_msy, e_msy), np.full(num_nash, e_nash)), axis=0)
+e_0 = np.linspace(0, e_nash, n_fishers)
+
 
 # Creating Simulation object
 sim = Simulation.Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_regrowth)
 sim.simulate(num_steps)
 fig = plt.figure()
-plt.suptitle("Full fish movement")
+plt.suptitle("No fish movement")
 
 # Plotting resource levels vs. time
 ax1 = fig.add_subplot(2,2,1)
@@ -60,8 +59,7 @@ ax3.plot(np.arange(num_steps), e_avg)
 ax3.set_xlabel("Time steps")
 ax3.set_ylabel("Effort")
 ax3.set_title("Average Effort vs. Time")
-extraticks = [e_msy, e_nash]
-ax3.set_yticks(extraticks)
+ax3.set_yticks(ax3.get_yticks())
 ax3.grid(True)
 
 # Plotting all efforts vs. time
