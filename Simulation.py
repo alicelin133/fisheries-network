@@ -23,15 +23,17 @@ class Simulation(object):
         price: float, price received per unit of fish
         cost: float, cost per unit of effort invested in fishing
         noise: float, switching strategies occurs with +/- *noise*
-        num_regrowth: int, number of cycles of harvest/regrowth per time step
+        num_feedback: int, number of cycles of harvest/regrowth/leakage per time step
     Node (territory) attributes:
         R: float, territory's resource level
         e: float, territory's effort level
         dR: float, for internal use in calculating leakage.
-        pi: float, territory's payoff from current time step
+        pi: float, territory's payoff from current iteration in feedback loop
+        payoffs: np.array of floats, territory's payoffs from each iteration of feedback loop
+        U: float, territory's utility from current time step
     """
 
-    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_regrowth):
+    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback):
         """Return a Simulation object with a complete graph on *n_fishers* nodes,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
@@ -46,7 +48,7 @@ class Simulation(object):
         self.price = price
         self.cost = cost
         self.noise = noise
-        self.num_regrowth = num_regrowth
+        self.num_feedback = num_feedback
         for i in range(self.G.number_of_nodes()):
             self.G.node[i]['R'] = R_0[i]
             self.G.node[i]['e'] = e_0[i]
@@ -80,12 +82,30 @@ class Simulation(object):
                 self.e_data[nood][t] = self.G.node[nood]['e']
                 self.R_data[nood][t] = self.G.node[nood]['R']
                 self.pi_data[nood][t] = self.G.node[nood]['pi']
-            for i in range(self.num_regrowth):
-                self.harvest()
-                self.regrowth()
-            self.leakage()
+            self.update_resource()
             self.update_strategy()
             self.t += 1
+
+    def update_resource(self):
+        """Runs the harvest(), regrowth(), and leakage() methods in a loop
+        self.num_feedback number of times. Also calculates the utility for
+        each fisher based on payoffs from all self.num_feedback harvests
+        combined."""
+        for nood in self.G.nodes(data=False):
+            self.G.node[nood]['payoffs'] = np.zeros(self.num_feedback)
+        for i in range(self.num_feedback):
+            self.harvest()
+            self.regrowth()
+            self.leakage()
+            for nood in self.G.nodes(data=False):
+                self.G.node[nood]['payoffs'][i] = self.G.node[nood]['pi']
+        self.calculate_utility()
+    
+    def calculate_utility(self):
+        """Calculates utility for each node after one update_resource loop by
+        summing payoffs from each harvest in the loop."""
+        for nood in self.G.nodes(data=False):
+            self.G.node[nood]['U'] = np.sum(self.G.node[nood]['payoffs'])
 
     def harvest(self):
         """Updates resource R for each territory based on e, the territory's
@@ -142,18 +162,19 @@ class Simulation(object):
         for i in range(1):
             fisher1 = np.random.randint(0,self.n_fishers)
             fisher2 = np.random.randint(0,self.n_fishers)
-            pi1 = self.G.node[fisher1]['pi']
+            U1 = self.G.node[fisher1]['U']
             # global mutation
             prob_mutation = 0
             rand = np.random.random()
             if rand < prob_mutation:
+                # TODO: why multiply by self.r?????
                 self.G.node[fisher1]['e_new'] = np.random.random() * self.r
             else:
-                pi2 = self.G.node[fisher2]['pi']
-                if pi1 < pi2:
-                    if pi1 != 0 or pi2 != 0:
+                U2 = self.G.node[fisher2]['U']
+                if U1 < U2:
+                    if U1 != 0 or U2 != 0:
                         # Probability that fisher1 switches to fisher2's strategy
-                        prob_switch = (pi2 - pi1) / (abs(pi1) + abs(pi2))
+                        prob_switch = (U2 - U1) / (abs(U1) + abs(U2))
                     else:
                         prob_switch = 0 # in case both payoffs are 0
                     rand = np.random.random()
@@ -183,10 +204,10 @@ def main():
     price = 1
     cost = 0.5
     noise = 0.01
-    num_regrowth = 1
+    num_feedback = 5
     num_steps = 1000
     # Creating Simulation object
-    my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_regrowth)
+    my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback)
     my_sim2.simulate(num_steps)
     fig = plt.figure()
     plt.suptitle("Full fish movement")
