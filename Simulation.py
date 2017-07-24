@@ -24,6 +24,8 @@ class Simulation(object):
         cost: float, cost per unit of effort invested in fishing
         noise: float, switching strategies occurs with +/- *noise*
         num_feedback: int, number of cycles of harvest/regrowth/leakage per time step
+        payoff_discount: ratio by which older payoffs are exponentially less
+        valued than recent payoffs
     Node (territory) attributes:
         R: float, territory's resource level
         e: float, territory's effort level
@@ -33,7 +35,7 @@ class Simulation(object):
         U: float, territory's utility from current time step
     """
 
-    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback):
+    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, payoff_discount):
         """Return a Simulation object with a complete graph on *n_fishers* nodes,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
@@ -49,6 +51,9 @@ class Simulation(object):
         self.cost = cost
         self.noise = noise
         self.num_feedback = num_feedback
+        self.R_0 = R_0
+        self.e_0 = e_0
+        self.payoff_discount = payoff_discount
         for i in range(self.G.number_of_nodes()):
             self.G.node[i]['R'] = R_0[i]
             self.G.node[i]['e'] = e_0[i]
@@ -105,7 +110,13 @@ class Simulation(object):
         """Calculates utility for each node after one update_resource loop by
         summing payoffs from each harvest in the loop."""
         for nood in self.G.nodes(data=False):
-            self.G.node[nood]['U'] = np.sum(self.G.node[nood]['payoffs'])
+            current_discount = 1
+            payoffs = self.G.node[nood]['payoffs']
+            U = 0
+            for i in range(self.num_feedback):
+                U += current_discount * payoffs[-1 - i]
+                current_discount = self.payoff_discount * current_discount
+            self.G.node[nood]['U'] = U
 
     def harvest(self):
         """Updates resource R for each territory based on e, the territory's
@@ -195,19 +206,20 @@ def main():
     start_time = time.time()        
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
     n_fishers = 10
-    delta = 0.001
+    delta = 1
     q = 1
     r = 0.05
     K = 1000
     R_0 = np.full(n_fishers,K/2)
-    e_0 = np.linspace(0,0.05,num=n_fishers)
+    e_0 = np.linspace(0,0.02,num=n_fishers)
     price = 1
     cost = 0.5
     noise = 0.01
-    num_feedback = 5
+    num_feedback = 10
+    payoff_discount = 0.5
     num_steps = 1000
     # Creating Simulation object
-    my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback)
+    my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, payoff_discount)
     my_sim2.simulate(num_steps)
     fig = plt.figure()
     plt.suptitle("Full fish movement")
