@@ -288,7 +288,7 @@ def main():
     print("Last time step avg utility: {}".format(U_avg[-1]))
     print("Last time step avg effort: {}".format(e_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
-    plt.show()   
+    plt.show()
 
 if __name__ == "__main__":
     main()

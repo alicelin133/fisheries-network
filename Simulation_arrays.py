@@ -5,7 +5,7 @@ plt.switch_backend('Qt5Agg')
 
 import time
 
-class Simulation(object):
+class Simulation_arrays(object):
     """A network of territories of fishers, where each territory harvests fish,
     and fish move between territories. The network has the following properties:
 
@@ -52,10 +52,10 @@ class Simulation(object):
         self.cost = cost
         self.noise = noise
         self.num_feedback = num_feedback
-        self.R_0 = R_0 # TODO: may delete this later
-        self.e_0 = e_0 # TODO: may delete this later (needed for file name tho)
-        self.R = R_0
-        self.e = e_0
+        self.R_0 = np.copy(R_0) # TODO: may delete this later
+        self.e_0 = np.copy(e_0) # TODO: may delete this later (needed for file name tho)
+        self.R = np.copy(R_0)
+        self.e = np.copy(e_0)
         self.U = np.zeros(n_fishers)
         self.payoff_discount = payoff_discount
         self.payoffs = np.zeros((num_feedback, n_fishers))
@@ -99,7 +99,6 @@ class Simulation(object):
         self.num_feedback number of times. Also calculates the utility for
         each fisher based on payoffs from all self.num_feedback harvests
         combined."""
-        self.U = np.zeros(self.n_fishers)
         for i in range(self.num_feedback):
             self.harvest(i)
             self.regrowth()
@@ -216,12 +215,12 @@ def main():
     delta = 0
     q = 1
     r = 0.05
-    K = 5000 / n_fishers
+    K = 200
     R_0 = np.full(n_fishers, K/2)
     e_0 = np.linspace(0, r/q, num=n_fishers)
     price = 1
     cost = 0.5
-    noise = 0.01
+    noise = 0.001
     e_msr = calculate_e_msr(n_fishers, q, r, K, price, cost)
     e_nash = calculate_e_nash(e_msr, n_fishers)
     print("e_msr: {}".format(e_msr))
@@ -229,8 +228,8 @@ def main():
     num_feedback = 50
     payoff_discount = 0.5
     num_steps = 1000
-    # Creating Simulation object
-    my_sim = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost,
+    # Creating Simulation_arrays object
+    my_sim = Simulation_arrays(n_fishers, delta, q, r, K, R_0, e_0, price, cost,
                         noise, num_feedback, payoff_discount, num_steps)
     my_sim.simulate()
     fig = plt.figure()
