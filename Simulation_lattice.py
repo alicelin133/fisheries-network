@@ -5,7 +5,7 @@ plt.switch_backend('Qt5Agg')
 
 import time
 
-class Simulation_arrays(object):
+class Simulation_lattice(object):
     """A grid network of territories of fishers, where each territory harvests fish,
     and fish move between territories. The network has the following properties:
 
@@ -36,7 +36,7 @@ class Simulation_arrays(object):
         U: float, territory's utility from current time step
     """
 
-    def __init__(self, network_dim, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, payoff_discount, num_steps):
+    def __init__(self, network_dims, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, payoff_discount, num_steps):
         """Return a Simulation object with a grid graph with *network_dim* dimensions,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
@@ -44,7 +44,7 @@ class Simulation_arrays(object):
         # TODO: fix the check_sim_attributes thing for network_dims
         self.G = nx.grid_graph(dim=network_dims, periodic=True)
         self.network_dims = network_dims
-        self.n_fishers = product(network_dims)
+        self.n_fishers = self.get_prod(network_dims)
         self.delta = delta
         self.q = q
         self.r = r
@@ -56,8 +56,8 @@ class Simulation_arrays(object):
         self.R_0 = np.copy(R_0)
         self.e_0 = np.copy(e_0)
         for nood in self.G.nodes(data=False):
-            self.G.node[nood]['R'] = self.R_0[i]
-            self.G.node[nood]['e'] = self.e_0[i]
+            self.G.node[nood]['R'] = self.R_0[self.get1D(nood)]
+            self.G.node[nood]['e'] = self.e_0[self.get1D(nood)]
             self.G.node[nood]['dR'] = 0.0
             self.G.node[nood]['payoffs'] = np.zeros(self.num_feedback)
             self.G.node[nood]['U'] = 0.0
@@ -68,20 +68,20 @@ class Simulation_arrays(object):
         self.R_data = np.zeros((self.n_fishers, num_steps))
         self.U_data = np.zeros((self.n_fishers, num_steps))
     
-    def product(list):
+    def get_prod(self, num_list):
         """Returns the product of the elements in *list*. Used in
         constructor to determine value of n_fishers from grid graph
         dimensions."""
         product = 1
-        for i in list:
-            product *= i
+        for i in num_list:
+            product = product * i
         return product
     
-    def get1D(coord_pair):
+    def get1D(self, coord_pair):
         """Given an ordered pair, convert to an integer identifier."""
         return coord_pair[0] * self.network_dims[0] + coord_pair[1]
 
-    def check_sim_attributes(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise):
+    def check_sim_attributes(self, network_dims, delta, q, r, K, R_0, e_0, price, cost, noise):
         """Checks that values of data attributes given in parameters to 
         constructor are in the correct format."""
         # TODO: not that important, but update this to include the new parameters.
@@ -89,11 +89,11 @@ class Simulation_arrays(object):
             raise ValueError("delta must be in [0,1]")
         if q < 0 or q > 1:
             raise ValueError("q must be in [0,1]")
-        if np.shape(R_0)[0] != self.n_fishers:
+        if R_0.size != self.get_prod(network_dims):
             raise ValueError("R_0 length must match self.n_fishers")
-        if np.shape(e_0)[0] != self.n_fishers:
+        if e_0.size != self.get_prod(network_dims):
             raise ValueError("e_0 length must match self.n_fishers")
-        for i in range(np.shape(e_0)[0]):
+        for i in range(e_0.size):
             if e_0[i] < 0 or e_0[i] > 1:
                 raise ValueError("entry {} in e_0 must be in [0,1]".format(i))
         
@@ -103,9 +103,9 @@ class Simulation_arrays(object):
         # e_data[nood][t] = e of node nood at time step t
         for t in range(self.num_steps):
             for nood in self.G.nodes(data=False):
-                self.e_data[get1D(nood)][t] = self.G.node[nood]['e']
-                self.R_data[get1D(nood)][t] = self.G.node[nood]['R']
-                self.U_data[get1D(nood)][t] = self.G.node[nood]['U']
+                self.e_data[self.get1D(nood)][t] = self.G.node[nood]['e']
+                self.R_data[self.get1D(nood)][t] = self.G.node[nood]['R']
+                self.U_data[self.get1D(nood)][t] = self.G.node[nood]['U']
             self.update_resource()
             self.update_strategy()
 
@@ -184,8 +184,10 @@ class Simulation_arrays(object):
         for nood in self.G.nodes(data=False): # initialize e_new array
             self.G.node[nood]['e_new'] = self.G.node[nood]['e']
         for i in range(1):
-            fisher1 = np.random.randint(0,self.n_fishers)
-            fisher2 = np.random.randint(0,self.n_fishers)
+            fisher1 = (np.random.randint(0, self.network_dims[0]),
+                       np.random.randint(0, self.network_dims[1]))
+            fisher2 = (np.random.randint(0, self.network_dims[0]),
+                       np.random.randint(0, self.network_dims[1]))
             U1 = self.G.node[fisher1]['U']
             # global mutation
             prob_mutation = 0
@@ -193,7 +195,7 @@ class Simulation_arrays(object):
             if rand < prob_mutation:
                 self.G.node[fisher1]['e_new'] = np.random.random()
             else:
-                U2 = self.G.node[fisher1]['U']
+                U2 = self.G.node[fisher2]['U']
                 if U1 < U2:
                     if U1 != 0 or U2 != 0:
                         # Probability that fisher1 switches to fisher2's strategy
@@ -226,8 +228,8 @@ def main():
     start_time = time.time()        
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise,
     #   num_feedback, payoff_discount, num_steps
-    n_fishers_length = 10
-    n_fishers = n_fishers_length ** 2
+    network_dims = [5,5]
+    n_fishers = network_dims[0] * network_dims[1]
     delta = 0
     q = 1
     r = 0.05
@@ -243,13 +245,13 @@ def main():
     print("e_nash: {}".format(e_nash))
     num_feedback = 50
     payoff_discount = 0.5
-    num_steps = 100
+    num_steps = 5000
     # Creating Simulation_arrays object
-    my_sim = Simulation_arrays(n_fishers_length, delta, q, r, K, R_0, e_0, price, cost,
+    my_sim = Simulation_lattice(network_dims, delta, q, r, K, R_0, e_0, price, cost,
                         noise, num_feedback, payoff_discount, num_steps)
     my_sim.simulate()
     fig = plt.figure()
-    plt.suptitle("Full fish movement")
+    plt.suptitle("No fish movement")
     # Plotting resource levels vs. time
     ax1 = fig.add_subplot(2,2,1)
     for i in range(my_sim.n_fishers):
@@ -283,11 +285,10 @@ def main():
     ax4.set_title("Effort vs. Time")
     ax4.grid(True)
     fig.subplots_adjust(wspace=0.3, hspace=0.4)
-
     print("Last time step avg utility: {}".format(U_avg[-1]))
     print("Last time step avg effort: {}".format(e_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
-    plt.show()    
-    
+    plt.show()   
+
 if __name__ == "__main__":
     main()
