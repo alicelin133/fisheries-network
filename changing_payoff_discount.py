@@ -3,6 +3,7 @@ one effort vs. delta plot per value of payoff_discount in a 3D plot."""
 
 import time
 import numpy as np
+import pickle
 
 import Simulation_arrays
 
@@ -50,10 +51,13 @@ if __name__ == '__main__':
     fname_e_vals = path + "e_vals-seed" + str(seed) + "-changing_payoff_discount.npy"
     fname_payoff_discounts = path + "payoff_discounts-seed" + str(seed) + \
                             "-changing_payoff_discount.npy"
-    fname_sim = path + "sim-seed" + str(seed) + "-changing_payoff_discount.npy"
+    fname_sim = path + "sim-seed" + str(seed) + "-changing_payoff_discount.file"
     np.save(fname_deltas, deltas)
     np.save(fname_e_vals, e_vals)
     np.save(fname_payoff_discounts, payoff_discounts)
-    np.save(fname_sim, sim) # must save this in order to calculate e_msr in separate file
+    
+    # Save simulation data attributes to get e_msr in separate file
+    with open(fname_sim, 'wb') as f:
+        pickle.dump(sim, f, pickle.HIGHEST_PROTOCOL)
 
     print("--- %s seconds ---" % (time.time() - start_time))

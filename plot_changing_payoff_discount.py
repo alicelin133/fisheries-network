@@ -4,6 +4,7 @@ of several payoff_discount values, which forms the third axis."""
 
 import time
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib.collections import LineCollection
@@ -44,7 +45,11 @@ if __name__ == '__main__':
     deltas = np.load(path + "deltas-seed15-changing_payoff_discount.npy")
     e_vals = np.load(path + "e_vals-seed15-changing_payoff_discount.npy")
     payoff_discounts = np.load(path + "payoff_discounts-seed15-changing_payoff_discount.npy")
-    sim = np.load(path + "sim-seed15-changing_payoff_discount.npy")
+    
+    # Calculating e_msr, e_nash
+    with open(path + "sim-seed15-changing_payoff_discount.file", 'rb') as f:
+        sim = pickle.load(f)
+    e_msr, e_nash = get_e_msr_nash(sim)
 
     # Plotting stuff
     fig = plt.figure()
