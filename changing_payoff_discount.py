@@ -41,10 +41,10 @@ if __name__ == '__main__':
     num_steps = 1000
 
     # Assign values for *payoff_discount*
-    payoff_discounts = np.linspace(0.04, 0.06, 5, endpoint=True)
+    payoff_discounts = np.linspace(0.04, 0.06, 2, endpoint=True)
 
     # Assign values for *delta*
-    deltas = np.linspace(0, 0.5, 11, endpoint=True)
+    deltas = np.linspace(0, 0.5, 5, endpoint=True)
 
     # Create simulations
     e_vals = np.zeros((payoff_discounts.size, deltas.size))
@@ -56,7 +56,16 @@ if __name__ == '__main__':
             sim.simulate()
             e_vals[i][j] = np.mean(sim.e_data[:,100:])
             print("{}th simulation done of {}!".format(i * payoff_discounts.size + j,
-                payoff_discounts.size * deltas.size))
+                payoff_discounts.size * deltas.size)) # keep track of progress
+
+    # Save data
+    path = "/Users/alicelin/Documents/fish/fisheries-network/data/"
+    fname_deltas = path + "deltas-changing_payoff_discount.npy"
+    fname_e_vals = path + "e_vals-changing_payoff_discount.npy"
+    fname_payoff_discounts = path + "payoff_discounts-changing_payoff_discount.npy"
+    np.save(fname_deltas, deltas)
+    np.save(fname_e_vals, e_vals)
+    np.save(fname_payoff_discounts, payoff_discounts)
 
     # Plotting stuff
     fig = plt.figure()
@@ -73,6 +82,8 @@ if __name__ == '__main__':
     lines = LineCollection(verts, linewidth=1)
     ax.add_collection3d(lines, zs=zs, zdir='y')
 
+    e_msr = calculate_e_msr(n_fishers, q, r, K, price, cost)
+    e_nash = calculate_e_nash(e_msr, n_fishers)
     plane = [(deltas[0], payoff_discounts[0]), (deltas[0] + 0.0001, payoff_discounts[-1]),
              (deltas[-1] - 0.001, payoff_discounts[-1]), (deltas[-1], payoff_discounts[0])]
     horizs = [plane, plane]
