@@ -41,7 +41,6 @@ class Simulation_lattice(object):
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
         self.check_sim_attributes(network_dims, delta, q, r, K, R_0, e_0, price, cost, noise)
-        # TODO: fix the check_sim_attributes thing for network_dims
         self.G = nx.grid_graph(dim=network_dims, periodic=True)
         self.network_dims = network_dims
         self.n_fishers = self.get_prod(network_dims)
@@ -84,7 +83,9 @@ class Simulation_lattice(object):
     def check_sim_attributes(self, network_dims, delta, q, r, K, R_0, e_0, price, cost, noise):
         """Checks that values of data attributes given in parameters to 
         constructor are in the correct format."""
-        # TODO: not that important, but update this to include the new parameters.
+        for dim in network_dims:
+            if dim < 0 or not isinstance(dim, int):
+                raise ValueError("network_dims must be positive integer values")
         if delta < 0 or delta > 1:
             raise ValueError("delta must be in [0,1]")
         if q < 0 or q > 1:
@@ -230,7 +231,7 @@ def main():
     #   num_feedback, payoff_discount, num_steps
     network_dims = [5,5]
     n_fishers = network_dims[0] * network_dims[1]
-    delta = 0
+    delta = 1
     q = 1
     r = 0.05
     K = 5000 / n_fishers
@@ -243,15 +244,21 @@ def main():
     e_nash = calculate_e_nash(e_msr, n_fishers)
     print("e_msr: {}".format(e_msr))
     print("e_nash: {}".format(e_nash))
-    num_feedback = 50
-    payoff_discount = 0.5
-    num_steps = 5000
+    num_feedback = 10
+    payoff_discount = 0
+    num_steps = 10000
+
+    # Setting seed for pseudo-RNG
+    seed = 15
+    np.random.seed(seed)
+
     # Creating Simulation_arrays object
     my_sim = Simulation_lattice(network_dims, delta, q, r, K, R_0, e_0, price, cost,
                         noise, num_feedback, payoff_discount, num_steps)
     my_sim.simulate()
     fig = plt.figure()
-    plt.suptitle("No fish movement")
+    plt.suptitle("delta = {}".format(delta))
+
     # Plotting resource levels vs. time
     ax1 = fig.add_subplot(2,2,1)
     for i in range(my_sim.n_fishers):
@@ -260,6 +267,7 @@ def main():
     ax1.set_ylabel("Resource (K = {})".format(my_sim.K))
     ax1.set_title("Territory Resource Levels vs. Time")
     ax1.grid(True)
+
     # Plotting avg payoff vs. time
     U_avg = np.average(my_sim.U_data, axis=0)
     ax2 = fig.add_subplot(2,2,2)
@@ -268,6 +276,7 @@ def main():
     ax2.set_ylabel("Average utility")
     ax2.set_title("Average Utility vs. Time")
     ax2.grid(True)
+
     # Plotting avg effort vs. time
     e_avg = np.average(my_sim.e_data, axis=0)
     ax3 = fig.add_subplot(2,2,3)
@@ -276,6 +285,7 @@ def main():
     ax3.set_ylabel("Effort")
     ax3.set_title("Average Effort vs. Time")
     ax3.grid(True)
+
     # Plotting all efforts vs. time
     ax4 = fig.add_subplot(2,2,4)
     for i in range(my_sim.n_fishers):
@@ -285,6 +295,7 @@ def main():
     ax4.set_title("Effort vs. Time")
     ax4.grid(True)
     fig.subplots_adjust(wspace=0.3, hspace=0.4)
+    
     print("Last time step avg utility: {}".format(U_avg[-1]))
     print("Last time step avg effort: {}".format(e_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
