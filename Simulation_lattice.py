@@ -23,8 +23,6 @@ class Simulation_lattice(object):
         cost: float, cost per unit of effort invested in fishing
         noise: float, switching strategies occurs with +/- *noise*
         num_feedback: int, number of cycles of harvest/regrowth/leakage per time step
-        payoff_discount: ratio by which older payoffs are exponentially less
-            valued than recent payoffs
         R_data: np array, R_data[i][t] = resource of territory i at time t
         e_data: np array, e_data[i][t] = effort of territory i at time t
         U_data: np array, U_data[i][t] = utility of territory i at time t
@@ -36,7 +34,7 @@ class Simulation_lattice(object):
         U: float, territory's utility from current time step
     """
 
-    def __init__(self, network_dims, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, payoff_discount, num_steps):
+    def __init__(self, network_dims, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, num_steps):
         """Return a Simulation object with a grid graph with *network_dim* dimensions,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
@@ -58,10 +56,8 @@ class Simulation_lattice(object):
             self.G.node[nood]['R'] = self.R_0[self.get1D(nood)]
             self.G.node[nood]['e'] = self.e_0[self.get1D(nood)]
             self.G.node[nood]['dR'] = 0.0
-            self.G.node[nood]['payoffs'] = np.zeros(self.num_feedback)
             self.G.node[nood]['U'] = 0.0
             self.G.node[nood]['e_new'] = 0.0
-        self.payoff_discount = payoff_discount
         self.num_steps = num_steps
         self.e_data = np.zeros((self.n_fishers, num_steps))
         self.R_data = np.zeros((self.n_fishers, num_steps))
@@ -119,18 +115,7 @@ class Simulation_lattice(object):
             self.harvest(i)
             self.regrowth()
             self.leakage()
-        self.calculate_utility()
-    
-    def calculate_utility(self):
-        """Calculates utility for each node after one update_resource loop by
-        summing payoffs from each harvest in the loop."""
-        for nood in self.G.nodes(data=False):
-            current_discount = 1
-            U = 0
-            for i in range(self.num_feedback):
-                U += current_discount * self.G.node[nood]['payoffs'][-1 - i]
-                current_discount = self.payoff_discount * current_discount
-            self.G.node[nood]['U'] = U
+            # TODO: update the payoff i.e. 'U' for each node!!!!
 
     def harvest(self, num_iteration):
         """Updates resource R for each territory based on e, the territory's
@@ -146,7 +131,9 @@ class Simulation_lattice(object):
                 print("Resource is {} for node {}".format(R, nood))
             else: # case 2: fisher wants less fish than he could take
                 self.G.node[nood]['R'] = R - harvest
-            self.G.node[nood]['payoffs'][num_iteration] = self.price * harvest - self.cost * e
+            # Only save the payoff if it's the last iteration of the time step
+            if num_iteration == self.num_feedback - 1:
+                self.G.node[nood]['U'] = self.price * harvest - self.cost * e
 
     def regrowth(self):
         """Updates resource R for each territory based on the fish population's
@@ -228,7 +215,7 @@ def main():
     """Performs unit testing."""
     start_time = time.time()        
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise,
-    #   num_feedback, payoff_discount, num_steps
+    #   num_feedback, num_steps
     network_dims = [5,5]
     n_fishers = network_dims[0] * network_dims[1]
     delta = 1
@@ -245,7 +232,6 @@ def main():
     print("e_msr: {}".format(e_msr))
     print("e_nash: {}".format(e_nash))
     num_feedback = 10
-    payoff_discount = 0
     num_steps = 10000
 
     # Setting seed for pseudo-RNG
@@ -254,7 +240,7 @@ def main():
 
     # Creating Simulation_arrays object
     my_sim = Simulation_lattice(network_dims, delta, q, r, K, R_0, e_0, price, cost,
-                        noise, num_feedback, payoff_discount, num_steps)
+                        noise, num_feedback, num_steps)
     my_sim.simulate()
     fig = plt.figure()
     plt.suptitle("delta = {}".format(delta))
@@ -295,7 +281,7 @@ def main():
     ax4.set_title("Effort vs. Time")
     ax4.grid(True)
     fig.subplots_adjust(wspace=0.3, hspace=0.4)
-    
+
     print("Last time step avg utility: {}".format(U_avg[-1]))
     print("Last time step avg effort: {}".format(e_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
