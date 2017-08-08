@@ -12,6 +12,9 @@ class Simulation_lattice(object):
     Network attributes:
         G: grid graph in networkx, each node corresponds to a territory, each edge
             corresponds to a connection b/w territories that fish can leak through
+        H: complete graph in networkx, each node corresponds to a territory, each edge
+            corresponds to a possible neighbor to which a territory could
+            compare payoffs.
         network_dims: list, the dimensions of the network
         n_fishers: the number of territories in the total network
         delta: float, extent to which territories are ecologically
@@ -42,6 +45,7 @@ class Simulation_lattice(object):
         self.G = nx.grid_graph(dim=network_dims, periodic=True)
         self.network_dims = network_dims
         self.n_fishers = self.get_prod(network_dims)
+        self.H = nx.complete_graph(self.n_fishers)
         self.delta = delta
         self.q = q
         self.r = r
@@ -75,6 +79,13 @@ class Simulation_lattice(object):
     def get1D(self, coord_pair):
         """Given an ordered pair, convert to an integer identifier."""
         return coord_pair[0] * self.network_dims[0] + coord_pair[1]
+
+    def HtoG(self, node_id):
+        """Given a node identifier for strategy graph H, return the
+        corresponding node in ecology graph G."""
+        coord1 = node_id % self.network_dims[0]
+        coord0 = (node_id - coord1) / self.network_dims[0]
+        return (coord0, coord1)
 
     def check_sim_attributes(self, network_dims, delta, q, r, K, R_0, e_0, price, cost, noise):
         """Checks that values of data attributes given in parameters to 
@@ -115,7 +126,6 @@ class Simulation_lattice(object):
             self.harvest(i)
             self.regrowth()
             self.leakage()
-            # TODO: update the payoff i.e. 'U' for each node!!!!
 
     def harvest(self, num_iteration):
         """Updates resource R for each territory based on e, the territory's
@@ -171,19 +181,19 @@ class Simulation_lattice(object):
         process self.n_fishers times."""
         for nood in self.G.nodes(data=False): # initialize e_new array
             self.G.node[nood]['e_new'] = self.G.node[nood]['e']
-        for i in range(1):
-            fisher1 = (np.random.randint(0, self.network_dims[0]),
-                       np.random.randint(0, self.network_dims[1]))
-            fisher2 = (np.random.randint(0, self.network_dims[0]),
-                       np.random.randint(0, self.network_dims[1]))
-            U1 = self.G.node[fisher1]['U']
+        for i in range(self.n_fishers):
+            index1 = np.random.randint(self.n_fishers)
+            fisher1 = self.H.nodes(data=False)[index1]
+            index2 = np.random.randint(self.H.degree(fisher1))
+            fisher2 = self.H.neighbors(fisher1)[index2]
+            U1 = self.G.node[self.HtoG(fisher1)]['U']
             # global mutation
             prob_mutation = 0
             rand = np.random.random()
             if rand < prob_mutation:
-                self.G.node[fisher1]['e_new'] = np.random.random()
-            else:
-                U2 = self.G.node[fisher2]['U']
+                self.G.node[self.HtoG(fisher1)]['e_new'] = np.random.random()
+            else: # switching strategies based on payoff
+                U2 = self.G.node[self.HtoG(fisher2)]['U']
                 if U1 < U2:
                     if U1 != 0 or U2 != 0:
                         # Probability that fisher1 switches to fisher2's strategy
@@ -193,13 +203,13 @@ class Simulation_lattice(object):
                     rand = np.random.random()
                     if rand < prob_switch:
                         diff = np.random.uniform(-1 * self.noise, self.noise)
-                        e_new = self.G.node[fisher2]['e'] + diff
+                        e_new = self.G.node[self.HtoG(fisher2)]['e'] + diff
                         # ensure that e_new stays in [0,1]
                         if e_new < 0:
                             e_new = 0
                         elif e_new > 1:
                             e_new = 1
-                        self.G.node[fisher1]['e_new'] = e_new
+                        self.G.node[self.HtoG(fisher1)]['e_new'] = e_new
         for i in self.G.nodes(data=False):
             self.G.node[i]['e'] = self.G.node[i]['e_new']
 
@@ -213,37 +223,39 @@ def calculate_e_nash(e_msr, n_fishers):
 
 def main():
     """Performs unit testing."""
-    start_time = time.time()        
+    start_time = time.time()
+
+    # Setting seed for pseudo-RNG
+    seed = 17
+    np.random.seed(seed)   
+
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise,
     #   num_feedback, num_steps
     network_dims = [5,5]
     n_fishers = network_dims[0] * network_dims[1]
     delta = 1
     q = 1
-    r = 0.05
-    K = 5000 / n_fishers
+    r = 0.06
+    K = 200
     R_0 = np.full(n_fishers, K/2)
-    e_0 = np.linspace(0, r/q, num=n_fishers)
+    # e_0 = np.random.random(n_fishers) * r/q
+    e_0 = np.linspace(0, r/q, n_fishers)
     price = 1
     cost = 0.5
-    noise = 0.0001
+    noise = 0.0005
     e_msr = calculate_e_msr(n_fishers, q, r, K, price, cost)
     e_nash = calculate_e_nash(e_msr, n_fishers)
     print("e_msr: {}".format(e_msr))
     print("e_nash: {}".format(e_nash))
-    num_feedback = 10
-    num_steps = 10000
-
-    # Setting seed for pseudo-RNG
-    seed = 15
-    np.random.seed(seed)
+    num_feedback = 50
+    num_steps = 1000
 
     # Creating Simulation_arrays object
     my_sim = Simulation_lattice(network_dims, delta, q, r, K, R_0, e_0, price, cost,
                         noise, num_feedback, num_steps)
     my_sim.simulate()
     fig = plt.figure()
-    plt.suptitle("delta = {}".format(delta))
+    plt.suptitle("delta = {}, num_feedback = {}".format(delta, num_feedback))
 
     # Plotting resource levels vs. time
     ax1 = fig.add_subplot(2,2,1)
@@ -282,8 +294,14 @@ def main():
     ax4.grid(True)
     fig.subplots_adjust(wspace=0.3, hspace=0.4)
 
+    # Calculate R_avg (only for seeing asymptote)
+    R_avg = np.average(my_sim.R_data, axis=0)
+    R_val = np.average(R_avg[int(R_avg.size/2):])
+
+    # Print some useful information
     print("Last time step avg utility: {}".format(U_avg[-1]))
     print("Last time step avg effort: {}".format(e_avg[-1]))
+    print("Last time step avg resource: {}".format(R_val))
     print("--- %s seconds ---" % (time.time() - start_time))
     plt.show()
 
