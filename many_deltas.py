@@ -124,13 +124,12 @@ def main():
     payoff_discount = 0.5
     num_steps = 1000 # for the avg, needs to be > 50
     R_0 = np.full(n_fishers,K)
-    print("R_0 initially: {}".format(R_0))
     e_msr = calculate_e_msr(n_fishers, q, r, K, price, cost)
     e_nash = calculate_e_nash(e_msr, n_fishers)
     e_max = r/q
     e_0 = np.linspace(0, e_max, n_fishers)
-    num_deltas = 20
-    deltas = np.linspace(0, 0.20, num_deltas, endpoint=False)
+    num_deltas = 100
+    deltas = np.linspace(0.005, 0.995, num_deltas, endpoint=True)
     
     # Create Simulations and plot results
     sims_list = create_sims(n_fishers, deltas, q, r, K, R_0, e_0, price, cost,
@@ -145,7 +144,6 @@ def main():
     R_fname = write_fname(sims_list[0], num_steps, deltas, path, "R")
     U_fname = write_fname(sims_list[0], num_steps, deltas, path, "U")
     dels_fname = write_fname(sims_list[0], num_steps, deltas, path, "deltas")
-    print("R_0 as an attribute: {}".format(sims_list[0].R_0))
     np.save(e_fname, e_avg)
     np.save(R_fname, R_avg)
     np.save(U_fname, U_avg)

@@ -168,7 +168,7 @@ class Simulation_arrays(object):
         process self.n_fishers times."""
         for i in range(self.n_fishers): # initialize e_new array
             self.e_new[i] = self.e[i]
-        for i in range(1):
+        for i in range(self.n_fishers):
             fisher1 = np.random.randint(0,self.n_fishers)
             fisher2 = np.random.randint(0,self.n_fishers)
             U1 = self.U[fisher1]
@@ -208,26 +208,31 @@ def calculate_e_nash(e_msr, n_fishers):
 
 def main():
     """Performs unit testing."""
-    start_time = time.time()        
+    start_time = time.time()
+
+    # Set seed for pseudo-RNG
+    np.random.seed(17)
+
     # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise,
     #   num_feedback, payoff_discount, num_steps
-    n_fishers = 10
-    delta = 0
+    n_fishers = 16
+    delta = 1
     q = 1
     r = 0.05
     K = 200
     R_0 = np.full(n_fishers, K/2)
-    e_0 = np.linspace(0, r/q, num=n_fishers)
     price = 1
     cost = 0.5
-    noise = 0.001
+    noise = 0.0001
     e_msr = calculate_e_msr(n_fishers, q, r, K, price, cost)
     e_nash = calculate_e_nash(e_msr, n_fishers)
     print("e_msr: {}".format(e_msr))
     print("e_nash: {}".format(e_nash))
-    num_feedback = 50
-    payoff_discount = 0.5
+    e_0 = np.concatenate((np.full(8, e_msr), np.full(8,e_nash)))
+    num_feedback = 25
+    payoff_discount = 0
     num_steps = 1000
+
     # Creating Simulation_arrays object
     my_sim = Simulation_arrays(n_fishers, delta, q, r, K, R_0, e_0, price, cost,
                         noise, num_feedback, payoff_discount, num_steps)
@@ -268,8 +273,14 @@ def main():
     ax4.grid(True)
     fig.subplots_adjust(wspace=0.3, hspace=0.4)
 
+    # Calculate R_avg (only for seeing asymptote)
+    R_avg = np.average(my_sim.R_data, axis=0)
+    R_val = np.average(R_avg[int(R_avg.size/2):])
+
+    # Print some useful information
     print("Last time step avg utility: {}".format(U_avg[-1]))
     print("Last time step avg effort: {}".format(e_avg[-1]))
+    print("Last time step avg resource: {}".format(R_val))
     print("--- %s seconds ---" % (time.time() - start_time))
     plt.show()    
     

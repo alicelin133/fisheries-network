@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib.collections import LineCollection
 from matplotlib.collections import PolyCollection
+from matplotlib import cm
 import matplotlib.colors as mcolors
 plt.switch_backend('Qt5Agg')
 
@@ -45,6 +46,7 @@ if __name__ == '__main__':
     deltas = np.load(path + "deltas-seed15-changing_payoff_discount.npy")
     e_vals = np.load(path + "e_vals-seed15-changing_payoff_discount.npy")
     payoff_discounts = np.load(path + "payoff_discounts-seed15-changing_payoff_discount.npy")
+    print(e_vals)
     
     # Calculating e_msr, e_nash
     with open(path + "sim-seed15-changing_payoff_discount.file", 'rb') as f:
@@ -63,11 +65,17 @@ if __name__ == '__main__':
     for i in range(payoff_discounts.size):
         verts.append(list(zip(xs, ys[i])))
     
-    lines = LineCollection(verts, linewidth=1) # TODO: use different colors for lines
+    # Picking colors to use as lines
+    cmap = cm.get_cmap('Spectral')
+    # Normalize the payoff_discounts by dividing by its max value
+    color_vals = np.divide(payoff_discounts, np.amax(payoff_discounts))
+    rgba = cmap(color_vals)
+
+    # Plotting all the effort vs. delta curves
+    lines = LineCollection(verts, colors=rgba, linewidth=1)
     ax.add_collection3d(lines, zs=zs, zdir='y')
 
-    e_msr = calculate_e_msr(n_fishers, q, r, K, price, cost)
-    e_nash = calculate_e_nash(e_msr, n_fishers)
+    # Creating planes for e_msr and e_nash
     plane = [(deltas[0], payoff_discounts[0]), (deltas[0] + 0.0001, payoff_discounts[-1]),
              (deltas[-1] - 0.001, payoff_discounts[-1]), (deltas[-1], payoff_discounts[0])]
     horizs = [plane, plane]
@@ -80,8 +88,9 @@ if __name__ == '__main__':
     ax.set_xlim3d(deltas[0], deltas[-1])
     ax.set_ylim3d(payoff_discounts[0], payoff_discounts[-1])
     ax.set_zlim3d(e_msr * 0.8, e_nash * 1.2)
-    ax.set_yticks(payoff_discounts) # TODO: test if works then add to original .py file
+    ax.set_yticks(payoff_discounts)
     ax.set_xticks(deltas)
+    ax.set_xticklabels(deltas, rotation=30) 
 
     print("--- %s seconds ---" % (time.time() - start_time))
     plt.show()

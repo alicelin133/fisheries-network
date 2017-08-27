@@ -7,7 +7,7 @@ import numpy as np
 import time
 plt.switch_backend('Qt5Agg')
 
-import lattice_e_vs_delta # TODO: use this to calculate e_msr, e_nash and plot these as hlines
+import lattice_e_vs_delta
 
 def get_vals(raw):
     """Takes a 3D numpy array *raw* and calculates the mean data values for
@@ -23,22 +23,22 @@ def get_vals(raw):
 def main():
     # Get values to plot
     e_raw = np.load("/Users/alicelin/Documents/fish/fisheries-network" + \
-        "/data/e-lattice-4x4-num_deltas21-deltas0_0to0_1-q1-r0_05-K20" + \
+        "/data/e-lattice-6x6-num_deltas21-deltas0_0to0_1-q1-r0_06-K20" + \
         "0-price1-cost0_5-noise0_0001-R_0100_0-num_feedback25-num_ste" + \
         "ps1000-v0.npy")
     R_raw = np.load("/Users/alicelin/Documents/fish/fisheries-network" + \
-        "/data/R-lattice-4x4-num_deltas21-deltas0_0to0_1-q1-r0_05-K20" + \
+        "/data/R-lattice-6x6-num_deltas21-deltas0_0to0_1-q1-r0_06-K20" + \
         "0-price1-cost0_5-noise0_0001-R_0100_0-num_feedback25-num_ste" + \
         "ps1000-v0.npy")
-    deltas = np.load("/Users/alicelin/Documents/fish/fisheries-networ" + \
-        "k/data/deltas-lattice-4x4-num_deltas21-deltas0_0to0_1-q1-r0_" + \
-        "05-K200-price1-cost0_5-noise0_0001-R_0100_0-num_feedback25-n" + \
-        "um_steps1000-v0.npy")
+    deltas = np.load("/Users/alicelin/Documents/fish/fisheries-network" + \
+        "/data/deltas-lattice-6x6-num_deltas21-deltas0_0to0_1-q1-r0_06-K20" + \
+        "0-price1-cost0_5-noise0_0001-R_0100_0-num_feedback25-num_ste" + \
+        "ps1000-v0.npy")
     es = get_vals(e_raw)
     Rs = get_vals(R_raw)
 
     # Calculae e_msr, e_nash to plot as hlines
-    e_msr, e_nash = lattice_e_vs_delta.get_e_msr_nash(16, 0.05, 1, 200, 1, 0.5)
+    e_msr, e_nash = lattice_e_vs_delta.get_e_msr_nash(36, 0.06, 1, 200, 1, 0.5)
     
     # Making figure
     plt.style.use('bmh')
@@ -52,7 +52,7 @@ def main():
     ax1.set_xticks(np.linspace(deltas[0],deltas[-1],11))
     ax1.set_xlabel("$\delta$")
     ax1.set_ylabel("Equilibrium effort", color='b')
-    ax1.set_title("Effort, resource vs. $\delta$ on a 4-by-4 lattice")
+    ax1.set_title("Effort, resource vs. $\delta$ on a 6-by-6 lattice, $r = 0.06$")
     ax1.tick_params('y', colors='b')
     ax1.grid(b=False)
 

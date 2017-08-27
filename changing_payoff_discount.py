@@ -24,7 +24,7 @@ if __name__ == '__main__':
     num_steps = 1000
 
     # Assign values for *payoff_discount*
-    payoff_discounts = np.linspace(0, 1, 5, endpoint=True)
+    payoff_discounts = np.linspace(0, 1, 6, endpoint=True)
 
     # Assign values for *delta*
     deltas = np.linspace(0, 0.1, 10, endpoint=True)
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     np.save(fname_deltas, deltas)
     np.save(fname_e_vals, e_vals)
     np.save(fname_payoff_discounts, payoff_discounts)
-    
+
     # Save simulation data attributes to get e_msr in separate file
     with open(fname_sim, 'wb') as f:
         pickle.dump(sim, f, pickle.HIGHEST_PROTOCOL)

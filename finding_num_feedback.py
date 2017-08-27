@@ -50,6 +50,7 @@ def main():
         Rs_rand = get_Rs(sim_rand, max_feedback)
         plt.plot(Rs_rand, color='r', linewidth=0.5)
     plt.plot(Rs_rand, color='r', linewidth=0.5, label='random')
+
     
 
     # Half e_msr, half e_nash
@@ -61,6 +62,13 @@ def main():
         r, K, R_0, e_half, price, cost, noise, num_feedback, num_steps)
     Rs_half = get_Rs(sim_half, max_feedback)
     plt.plot(Rs_half, label='half e_msr half e_nash', linewidth=0.5)
+
+    # All uniform
+    e_same = np.full(n_fishers, e_nash)
+    sim_same = Simulation_lattice.Simulation_lattice(network_dims, delta, q,
+        r, K, R_0, e_same, price, cost, noise, num_feedback, num_steps)
+    Rs_same = get_Rs(sim_same, max_feedback)
+    plt.plot(Rs_same, color='k', linewidth=0.5, label='All nash')
 
     # Plot labels
     plt.style.use('bmh')

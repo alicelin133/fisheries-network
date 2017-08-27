@@ -46,14 +46,8 @@ def split_join(list_of_numbers):
     return new_list
 
 def main():
-    e_path = "/Users/alicelin/Documents/fish/fisheries-network/data/npy-del" + \
-    "tas-e-num_deltas5-delta_lo0_0-delta_hi1_0-n20-delta0_0-q1-r0_04-K250_0" + \
-    "-price1-cost0_5-noise1e-05-R_0lo250_0-R_0hi250_0-e_0lo0_0-e_0hi0_04-nu" + \
-    "m_regrowth50-num_steps60-v0.npy"
-    deltas_path = "/Users/alicelin/Documents/fish/fisheries-network/data/npy-del" + \
-    "tas-deltas-num_deltas5-delta_lo0_0-delta_hi1_0-n20-delta0_0-q1-r0_04-K250_0" + \
-    "-price1-cost0_5-noise1e-05-R_0lo250_0-R_0hi250_0-e_0lo0_0-e_0hi0_04-nu" + \
-    "m_regrowth50-num_steps60-v0.npy"
+    e_path = "/Users/alicelin/Documents/fish/fisheries-network/data/npy-deltas-e-num_deltas20-delta_lo0_0-delta_hi0_19-n20-delta0_0-q1-r0_04-K250_0-price1-cost0_5-noise1e-05-R_0lo250_0-R_0hi250_0-e_0lo0_0-e_0hi0_04-num_feedback50-p_discount0_5-num_steps1000-v0.npy"
+    deltas_path = "/Users/alicelin/Documents/fish/fisheries-network/data/npy-deltas-deltas-num_deltas20-delta_lo0_0-delta_hi0_19-n20-delta0_0-q1-r0_04-K250_0-price1-cost0_5-noise1e-05-R_0lo250_0-R_0hi250_0-e_0lo0_0-e_0hi0_04-num_feedback50-p_discount0_5-num_steps1000-v0.npy"
     e_avg = np.load(e_path)
     deltas = np.load(deltas_path)
     plot_e_vs_delta(deltas, e_avg)
@@ -66,7 +60,7 @@ def main():
     "m_regrowth50-num_steps60" # copied from e_path
     fig_fname = write_fname(fig_info, deltas, sim_info, path)
     print(fig_fname) # easily added to data log spreadsheet
-    plt.savefig(fig_fname)
+    # plt.savefig(fig_fname)
     plt.show()
 
 if __name__ == "__main__":

@@ -94,10 +94,10 @@ def main():
 
     # Assign parameter values
     # (network_dims, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, num_steps)
-    network_dims = [4,4]
+    network_dims = [6,6]
     n_fishers = network_dims[0] * network_dims[1]
     q = 1
-    r = 0.05
+    r = 0.06
     K = 200
     R_0 = np.full(n_fishers, K/2)
     price = 1
@@ -109,7 +109,7 @@ def main():
     num_steps = 1000
 
     # Assign delta values
-    deltas = np.linspace(0,1,21)
+    deltas = np.linspace(0,0.1,21)
 
     # Create lattice simulations for each delta value
     num_sims = 50
@@ -128,7 +128,7 @@ def main():
 
     # Save e, R, U arrays to disk
     path = "/Users/alicelin/Documents/fish/fisheries-network/data/"
-    data_info = "e-half-e_msr-half-e_nash"
+    data_info = "half-e_msr-half-e_nash"
     fname = write_fname(path, network_dims, deltas, q, r,
         K, price, cost, noise, R_0, num_feedback, num_steps)
     e_fname = path + "e-" + fname

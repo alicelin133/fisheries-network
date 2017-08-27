@@ -17,10 +17,10 @@ def calculate_e_nash(e_msr, n_fishers):
     """Calculates value of Nash equilibrium level of effort."""
     return e_msr * 2 * n_fishers / (1 + n_fishers)
 
-def get_e_avg(e_data):
-    """Returns average value of *e_data* result from one simulation. Averages
+def get_e_avg(sim):
+    """Returns average value of *sim*'s e_data from one simulation. Averages
     across all nodes and includes all time steps except the first 100."""
-    e_avg = np.average(e_data[:,100:])
+    e_avg = np.average(sim.e_data[:,100:])
     return e_avg
 
 def create_sims(num_sims, n_fishers, deltas, q, r, K, R_0, e_0, price, cost,
@@ -28,17 +28,18 @@ def create_sims(num_sims, n_fishers, deltas, q, r, K, R_0, e_0, price, cost,
     """Creates *num_sims* Simulation_array objects and runs the simulations.
     Returns the average *e_data* array over time. Sets the seed for
     reproducibility."""
-    e_avgs = np.zeros([deltas.size, num_sims])
+    e_avgs = np.zeros(deltas.size)
     for j in range(deltas.size):
+        e_vals = np.zeros(num_sims)
         for i in range(num_sims):
             np.random.seed(i)
             print("Delta: {} Number: {}".format(deltas[j], i))
             sim = Simulation_arrays.Simulation_arrays(n_fishers, deltas[j], q, r, K, R_0,
                 e_0, price, cost, noise, num_feedback, payoff_discount, num_steps)
             sim.simulate()
-            e_avgs[j][i] = get_e_avg(sim.e_data)
-    e_avg_final = np.mean(e_avgs, axis=1)
-    return e_avg_final
+            e_vals[i] = get_e_avg(sim)
+        e_avgs[j] = np.mean(e_vals)
+    return e_avgs
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -73,8 +74,8 @@ if __name__ == '__main__':
     e_nash = calculate_e_nash(e_msr, n_fishers)
     plt.axhline(y=e_msr, linewidth=1)
     plt.axhline(y=e_nash, linewidth=1)
-    plt.text(0.1, e_msr, '$e_{msr}$', align='bottom')
-    plt.text(0.1, e_nash, '$e_{Nash}$', align='bottom')
+    plt.text(0.1, e_msr, '$e_{msr}$', va='bottom')
+    plt.text(0.1, e_nash, '$e_{Nash}$', va='bottom')
     plt.xlabel("Delta")
     plt.ylabel("Effort Level")
     plt.title("Effort vs. Delta")

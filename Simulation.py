@@ -35,7 +35,7 @@ class Simulation(object):
         U: float, territory's utility from current time step
     """
 
-    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, payoff_discount):
+    def __init__(self, n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, payoff_discount, num_steps):
         """Return a Simulation object with a complete graph on *n_fishers* nodes,
         a leakage factor of *delta*, a fish catchability factor of *q*, and
         individual nodes with *R_0[i]* resource level and *e_0[i]* effort level."""
@@ -51,9 +51,10 @@ class Simulation(object):
         self.cost = cost
         self.noise = noise
         self.num_feedback = num_feedback
-        self.R_0 = R_0
-        self.e_0 = e_0
+        self.R_0 = np.copy(R_0)
+        self.e_0 = np.copy(e_0)
         self.payoff_discount = payoff_discount
+        self.num_steps = num_steps
         for i in range(self.G.number_of_nodes()):
             self.G.node[i]['R'] = R_0[i]
             self.G.node[i]['e'] = e_0[i]
@@ -75,21 +76,20 @@ class Simulation(object):
             if e_0[i] < 0 or e_0[i] > 1:
                 raise ValueError("entry {} in e_0 must be in [0,1]".format(i))
         
-    def simulate(self, maxstep):
+    def simulate(self):
         """Runs a discrete simulation of the fisheries network for *maxstep*
         time steps."""
         # e_data[nood][t] = e of node nood at time step t
-        self.e_data = np.zeros((self.n_fishers, maxstep))
-        self.R_data = np.zeros((self.n_fishers, maxstep))
-        self.pi_data = np.zeros((self.n_fishers, maxstep))
-        for t in range(maxstep):
+        self.e_data = np.zeros((self.n_fishers, self.num_steps))
+        self.R_data = np.zeros((self.n_fishers, self.num_steps))
+        self.pi_data = np.zeros((self.n_fishers, self.num_steps))
+        for t in range(self.num_steps):
             for nood in self.G.nodes(data=False):
                 self.e_data[nood][t] = self.G.node[nood]['e']
                 self.R_data[nood][t] = self.G.node[nood]['R']
                 self.pi_data[nood][t] = self.G.node[nood]['pi']
             self.update_resource()
             self.update_strategy()
-            self.t += 1
 
     def update_resource(self):
         """Runs the harvest(), regrowth(), and leakage() methods in a loop
@@ -201,46 +201,60 @@ class Simulation(object):
         for i in range(self.n_fishers):
             self.G.node[i]['e'] = self.G.node[i]['e_new']
             
+def calculate_e_msr(n_fishers, q, r, K, price, cost):
+    """Calculates value of e_msr (maximum sustainable rent)."""
+    return r * (price * q * K * n_fishers - n_fishers * cost) / (2 * price * q * q * K * n_fishers)
+
+def calculate_e_nash(e_msr, n_fishers):
+    """Calculates value of Nash equilibrium level of effort."""
+    return e_msr * 2 * n_fishers / (1 + n_fishers)
+
 def main():
     """Performs unit testing."""
     start_time = time.time()        
-    # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise
+    # Parameters: n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise,
+    #   num_feedback, payoff_discount, num_steps
     n_fishers = 10
-    delta = 1
+    delta = 0
     q = 1
     r = 0.05
-    K = 1000
-    R_0 = np.full(n_fishers,K/2)
-    e_0 = np.linspace(0,0.02,num=n_fishers)
+    K = 5000 / n_fishers
+    R_0 = np.full(n_fishers, K/2)
+    e_0 = np.linspace(0, r/q, num=n_fishers)
     price = 1
     cost = 0.5
-    noise = 0.01
-    num_feedback = 10
+    noise = 0.001
+    e_msr = calculate_e_msr(n_fishers, q, r, K, price, cost)
+    e_nash = calculate_e_nash(e_msr, n_fishers)
+    print("e_msr: {}".format(e_msr))
+    print("e_nash: {}".format(e_nash))
+    num_feedback = 50
     payoff_discount = 0.5
     num_steps = 1000
     # Creating Simulation object
-    my_sim2 = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost, noise, num_feedback, payoff_discount)
-    my_sim2.simulate(num_steps)
+    my_sim = Simulation(n_fishers, delta, q, r, K, R_0, e_0, price, cost,
+                        noise, num_feedback, payoff_discount, num_steps)
+    my_sim.simulate()
     fig = plt.figure()
     plt.suptitle("Full fish movement")
     # Plotting resource levels vs. time
     ax1 = fig.add_subplot(2,2,1)
-    for i in range(my_sim2.n_fishers):
-        ax1.plot(np.arange(num_steps), my_sim2.R_data[i])
+    for i in range(my_sim.n_fishers):
+        ax1.plot(np.arange(num_steps), my_sim.R_data[i])
     ax1.set_xlabel("Time step")
-    ax1.set_ylabel("Resource (K = {})".format(my_sim2.K))
+    ax1.set_ylabel("Resource (K = {})".format(my_sim.K))
     ax1.set_title("Territory Resource Levels vs. Time")
     ax1.grid(True)
     # Plotting avg payoff vs. time
-    pi_avg = np.average(my_sim2.pi_data, axis=0)
+    pi_avg = np.average(my_sim.pi_data, axis=0)
     ax2 = fig.add_subplot(2,2,2)
     ax2.plot(np.arange(num_steps), pi_avg)
     ax2.set_xlabel("Time steps")
-    ax2.set_ylabel("Average payoff")
-    ax2.set_title("Average Payoff vs. Time")
+    ax2.set_ylabel("Average utility")
+    ax2.set_title("Average Utility vs. Time")
     ax2.grid(True)
     # Plotting avg effort vs. time
-    e_avg = np.average(my_sim2.e_data, axis=0)
+    e_avg = np.average(my_sim.e_data, axis=0)
     ax3 = fig.add_subplot(2,2,3)
     ax3.plot(np.arange(num_steps), e_avg)
     ax3.set_xlabel("Time steps")
@@ -249,26 +263,18 @@ def main():
     ax3.grid(True)
     # Plotting all efforts vs. time
     ax4 = fig.add_subplot(2,2,4)
-    for i in range(my_sim2.n_fishers):
-        ax4.plot(my_sim2.e_data[i])
+    for i in range(my_sim.n_fishers):
+        ax4.plot(my_sim.e_data[i])
     ax4.set_xlabel("Time steps")
     ax4.set_ylabel("Effort")
     ax4.set_title("Effort vs. Time")
     ax4.grid(True)
     fig.subplots_adjust(wspace=0.3, hspace=0.4)
-    # Plotting standard deviation of effort over time
-    fig2 = plt.figure()
-    e_stddev = np.std(my_sim2.e_data, axis=0)
-    ax = fig2.add_subplot(1,1,1)
-    ax.plot(e_stddev)
-    ax.set_xlabel("Time step")
-    ax.set_ylabel("Standard deviation of effort")
-    plt.grid(b=True)
 
-    print("Last time step avg payoff: {}".format(pi_avg[-1]))
+    print("Last time step avg utility: {}".format(pi_avg[-1]))
     print("Last time step avg effort: {}".format(e_avg[-1]))
     print("--- %s seconds ---" % (time.time() - start_time))
-    plt.show()    
+    plt.show()      
     
 if __name__ == "__main__":
     main()
