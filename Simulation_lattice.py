@@ -8,7 +8,6 @@ import time
 class Simulation_lattice(object):
     """A grid network of territories of fishers, where each territory harvests fish,
     and fish move between territories. The network has the following properties:
-
     Network attributes:
         G: grid graph in networkx, each node corresponds to a territory, each edge
             corresponds to a connection b/w territories that fish can leak through
