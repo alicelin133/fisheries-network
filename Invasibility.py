@@ -13,9 +13,9 @@ import time
 
 def main():
     # set parameters
-    m = 8
-    n = 8
-    delta = 0
+    m = 6
+    n = 6
+    delta = 0.99
     q = 1
     r = 0.2
     R_0 = np.full((m, n), 0.5)
@@ -24,11 +24,12 @@ def main():
     num_feedback = 10
     copy_noise = 0.0005
     gm = False
-    num_steps = 20
+    num_steps = 10
 
     # Assign efforts
     e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
     e_nash = Sim.calculate_e_nash(e_msr, m, n)
+    print("e_nash: {}".format(e_nash))
     # Range of efforts used for mutant/resident strategies
     num_levels = 20
     res_levels = np.linspace(e_msr, r/q, num=num_levels, endpoint=True)
@@ -51,9 +52,14 @@ def main():
     
     # Create pairwise invasibility plot
     fig, ax = plt.subplots()
-    plt.imshow(isInvadable, cmap = cm.gray)
+    cax = ax.imshow(isInvadable, cmap = cm.gray, extent = [res_levels[0],
+        res_levels[-1], mut_levels[-1], mut_levels[0]])
     ax.set_xlabel("Resident effort level")
     ax.set_ylabel("Mutant effort level")
+    ax.set_title("Pairwise Invasibility Plot, delta = {}".format(delta))
+
+    cbar = fig.colorbar(cax, ticks=[0, 1])
+    cbar.ax.set_yticklabels(['Residents win', 'Mutant wins'])
 
 if __name__ == '__main__':
     start = time.time()
