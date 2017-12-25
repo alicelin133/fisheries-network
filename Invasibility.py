@@ -1,6 +1,7 @@
-"""Modifies the Simulation_2d_arrays object to create invasibility plots
-in which an invader with a different effort level is placed in a lattice
-otherwise filled with residents of a uniform effort level."""
+"""Creates and runs many Sim_no_update objects to create an invasibility plot
+in which a mutant with a different effort level is placed in a lattice
+otherwise filled with residents of a uniform effort level, then compares payoffs
+of the mutant and the average resident to make PIP."""
 
 import Sim_no_update as Sim
 import numpy as np
@@ -17,7 +18,7 @@ def main():
     n = 6
     delta = 0.99
     q = 1
-    r = 0.2
+    r = 0.05
     R_0 = np.full((m, n), 0.5)
     p = 1
     w = 0.5
@@ -31,7 +32,7 @@ def main():
     e_nash = Sim.calculate_e_nash(e_msr, m, n)
     print("e_nash: {}".format(e_nash))
     # Range of efforts used for mutant/resident strategies
-    num_levels = 20
+    num_levels = 25
     res_levels = np.linspace(e_msr, r/q, num=num_levels, endpoint=True)
     mut_levels = np.flip(res_levels, 0)
     isInvadable = np.zeros((num_levels, num_levels)) # (i,j) can mutant i invade resident j
