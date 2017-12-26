@@ -7,6 +7,20 @@ import time
 class Sim_no_update(object):
     """A grid network of territories, where each territory harvests fish,
     and fish move between territories along edges. The network is implicit.
+    Contents of the constructor's argument, *params* (type=dict)
+        'm': int
+        'n': int
+        'delta': float, in [0,1]
+        'q': float, in [0,1]
+        'r': float, in [0,1]
+        'R_0': np array of floats in [0,1], shape (m,n)
+        'e_0': np array of floats in [0,1], shape (m,n)
+        'p': float
+        'w': float
+        'num_feedback': int
+        'copy_noise': float
+        'gm': boolean
+        'num_steps': int
     Data attributes:
         m = number of rows in lattice of fishers
         n = number of columns in lattice of fishers
