@@ -27,32 +27,32 @@ class Sim_no_update(object):
         neighbors = mxnxDEGREEx2 np array, index [i][j] returns fisher's 4
             neighbor coordinates
     """
-    def __init__(self, m, n, delta, q, r, R_0, e_0, p, w, num_feedback, copy_noise, gm, num_steps):
+    def __init__(self, params):
         """Creates a Simulation_2d_arrays object."""
         self.DEGREE = 4 # can change this later
-        self.m = m
-        self.n = n
-        self.delta = delta
-        self.q = q
-        self.r = r
-        self.R_0 = np.copy(R_0) # used for naming files later
-        self.e_0 = np.copy(e_0)
-        self.p = p
-        self.w = w
-        self.num_feedback = num_feedback
-        self.copy_noise = copy_noise
-        self.gm = gm
-        self.num_steps = num_steps
-        self.R_t = np.copy(R_0)
-        self.e_t = np.copy(e_0)
-        self.pi_t = np.zeros((m,n))
-        self.R_data = np.zeros((num_steps,m,n))
-        self.e_data = np.zeros((num_steps,m,n))
-        self.pi_data = np.zeros((num_steps,m,n))
-        self.neighbors = np.zeros((m, n, self.DEGREE, 2), dtype=int)
+        self.m = params['m']
+        self.n = params['n']
+        self.delta = params['delta']
+        self.q = params['q']
+        self.r = params['r']
+        self.R_0 = np.copy(params['R_0']) # used for naming files later
+        self.e_0 = np.copy(params['e_0'])
+        self.p = params['p']
+        self.w = params['w']
+        self.num_feedback = params['num_feedback']
+        self.copy_noise = params['copy_noise']
+        self.gm = params['gm']
+        self.num_steps = params['num_steps']
+        self.R_t = np.copy(params['R_0'])
+        self.e_t = np.copy(params['e_0'])
+        self.pi_t = np.zeros((self.m,self.n))
+        self.R_data = np.zeros((self.num_steps, self.m, self.n))
+        self.e_data = np.zeros((self.num_steps, self.m, self.n))
+        self.pi_data = np.zeros((self.num_steps, self.m, self.n))
+        self.neighbors = np.zeros((self.m, self.n, self.DEGREE, 2), dtype=int)
         self.get_neighbors()
-        self.dR = np.zeros((m,n)) # used in leakage()
-        self.R_from_neighbors = np.zeros((m,n)) # used in leakage()
+        self.dR = np.zeros((self.m, self.n)) # used in leakage()
+        self.R_from_neighbors = np.zeros((self.m, self.n)) # used in leakage()
 
     def get_neighbors(self):
         """Fills the self.neighbors array with the neighbors. So
@@ -132,10 +132,8 @@ def main():
     seed = 17
     np.random.seed(seed)
     # set parameter values
-    # m, n, delta, q, r, R_0, e_0, p, w, num_feedback, copy_noise,
-    # gm, num_steps
     m = 10
-    n = 12
+    n = 10
     delta = 1
     q = 1
     r = 0.2
@@ -145,7 +143,8 @@ def main():
     num_feedback = 15
     copy_noise = 0.0005
     gm = False
-    num_steps = 1000
+    num_steps = 51
+    # creating e_0
     e_msr = calculate_e_msr(m, n, q, r, p, w)
     e_nash = calculate_e_nash(e_msr, m, n)
     e_0 = np.linspace(0, e_nash, num=m * n)
@@ -153,8 +152,11 @@ def main():
     print("e_msr: {}".format(e_msr))
     print("e_nash: {}".format(e_nash))
 
-    mysim = Sim_no_update(m, n, delta, q, r, R_0, e_0, p, w,
-        num_feedback, copy_noise, gm, num_steps)
+    params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
+              'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
+              'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
+
+    mysim = Sim_no_update(params)
     mysim.run_sim()
     print("avg e: {}".format(np.mean(mysim.e_data[50:])))
     fig = plt.figure()
