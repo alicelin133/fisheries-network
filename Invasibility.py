@@ -19,6 +19,7 @@ def main():
     delta = 0.99
     q = 1
     r = 0.05
+    e_0 = 0
     R_0 = np.full((m, n), 0.5)
     p = 1
     w = 0.5
@@ -26,6 +27,10 @@ def main():
     copy_noise = 0.0005
     gm = False
     num_steps = 10
+
+    params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
+              'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
+              'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
 
     # Assign efforts
     e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
@@ -44,9 +49,9 @@ def main():
             e_0 = e_0.reshape((m,n))
             mutant = (int(m/2), int(n/2))
             e_0[mutant] = mut_levels[i] # mutant strategy
+            params['e_0'] = e_0
             # create and run the simulation
-            mysim = Sim.Sim_no_update(m, n, delta, q, r, R_0, e_0, p, w,
-                num_feedback, copy_noise, gm, num_steps)
+            mysim = Sim.Sim_no_update(params)
             mysim.run_sim()
             isInvadable[i][j] = bool(mysim.pi_data[-1][mutant] > np.mean(mysim.pi_data[-1]))
     print(isInvadable)
