@@ -19,6 +19,7 @@ class Pip(object):
     """
     def __init__(self, params, num_levels):
         self.params = params
+        self.num_levels = num_levels
         m = params['m']
         n = params['n']
         q = params['q']
@@ -30,6 +31,7 @@ class Pip(object):
         e_nash = Sim.calculate_e_nash(e_msr, m, n)
         self.res_levels = np.linspace(e_msr, r/q, num=num_levels, endpoint=True)
         self.mut_levels = np.flip(self.res_levels, 0)
+        self.mutant = (int(m/2), int(n/2)) # needed in self.create_matrix()
         # stores PIP data
         self.invasion_matrix = np.empty((num_levels, num_levels))
     
@@ -48,18 +50,50 @@ class Pip(object):
         *invasion_matrix* attribute."""
         for i in range(self.num_levels): # mutant
             for j in range(self.num_levels): # resident
+                e_0 = self.make_e_0(i, j)
+                self.params['e_0'] = e_0
+                sim1 = Sim.Sim_no_update(self.params)
+                sim1.run_sim()
+                self.invasion_matrix[i,j] = bool(sim1.pi_data[-1][self.mutant] > np.mean(sim1.pi_data[-1]))
+
+    def make_e_0(self, i, j):
+        """Helper method, returns custom e_0 parameter for the Sim_no_update
+        object created to fill position (i,j) in *self.invasion_matrix*.
+        In this e_0 2D np array, all positions have value *self.res_levels[j]*
+        except for the position (m/2, n/2), which has value
+        *self.mut_levels[i]*."""
+        m = self.params['m']
+        n = self.params['n']
+        e_0 = np.full((m, n), self.res_levels[j]) # resident strategy
+        e_0 = e_0.reshape((m, n))
+        self.mutant = (int(m/2), int(n/2))
+        e_0[self.mutant] = self.mut_levels[i] # mutant strategy
+        return e_0
 
     def get_matrix(self):
         """Returns the *invasion_matrix* attribute."""
+        return self.invasion_matrix
 
+    def plot_pip(self):
+        """Plots *self.invasion_matrix* using a colormap. Black = residents win
+        White = mutant wins."""
+        fig, ax = plt.subplots()
+        cax = ax.imshow(self.invasion_matrix, cmap = cm.gray, extent = [self.res_levels[0],
+            self.res_levels[-1], self.mut_levels[-1], self.mut_levels[0]])
+        ax.set_xlabel("Resident effort level")
+        ax.set_ylabel("Mutant effort level")
+        ax.set_title("Pairwise Invasibility Plot, delta = {}".format(self.params['delta']))
+        cbar = fig.colorbar(cax, ticks=[0, 1])
+        cbar.ax.set_yticklabels(['Residents win', 'Mutant wins'])
 
 def main():
-    # set parameters
+    # Set parameters
     m = 6
     n = 6
     delta = 0.99
     q = 1
     r = 0.05
+    e_0 = 0 # will be assigned a meaningful value later
     R_0 = np.full((m, n), 0.5)
     p = 1
     w = 0.5
@@ -67,41 +101,14 @@ def main():
     copy_noise = 0.0005
     gm = False
     num_steps = 10
-
-    # Assign efforts
-    e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
-    e_nash = Sim.calculate_e_nash(e_msr, m, n)
-    print("e_nash: {}".format(e_nash))
-    # Range of efforts used for mutant/resident strategies
+    params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
+              'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
+              'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
     num_levels = 25
-    res_levels = np.linspace(e_msr, r/q, num=num_levels, endpoint=True)
-    mut_levels = np.flip(res_levels, 0)
-    isInvadable = np.zeros((num_levels, num_levels)) # (i,j) can mutant i invade resident j
-
-    # Compute pairwise invasibility
-    for i in range(num_levels): # mutant
-        for j in range(num_levels): # resident
-            e_0 = np.full((m, n), res_levels[j]) # resident strategy
-            e_0 = e_0.reshape((m,n))
-            mutant = (int(m/2), int(n/2))
-            e_0[mutant] = mut_levels[i] # mutant strategy
-            # create and run the simulation
-            mysim = Sim.Sim_no_update(m, n, delta, q, r, R_0, e_0, p, w,
-                num_feedback, copy_noise, gm, num_steps)
-            mysim.run_sim()
-            isInvadable[i][j] = bool(mysim.pi_data[-1][mutant] > np.mean(mysim.pi_data[-1]))
-    print(isInvadable)
-    
-    # Create pairwise invasibility plot
-    fig, ax = plt.subplots()
-    cax = ax.imshow(isInvadable, cmap = cm.gray, extent = [res_levels[0],
-        res_levels[-1], mut_levels[-1], mut_levels[0]])
-    ax.set_xlabel("Resident effort level")
-    ax.set_ylabel("Mutant effort level")
-    ax.set_title("Pairwise Invasibility Plot, delta = {}".format(delta))
-
-    cbar = fig.colorbar(cax, ticks=[0, 1])
-    cbar.ax.set_yticklabels(['Residents win', 'Mutant wins'])
+    # Create and plot Pip object
+    pip1 = Pip(params, num_levels)
+    pip1.create_matrix()
+    pip1.plot_pip()
 
 if __name__ == '__main__':
     start = time.time()
