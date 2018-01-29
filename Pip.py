@@ -27,9 +27,10 @@ class Pip(object):
         p = params['p']
         w = params['w']
         # create array of efforts to be tested, between e_msr and r/q
-        e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
-        e_nash = Sim.calculate_e_nash(e_msr, m, n)
-        self.res_levels = np.linspace(e_msr, r/q, num=num_levels, endpoint=True)
+        self.e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
+        self.e_nash = Sim.calculate_e_nash(self.e_msr, m, n)
+        # TODO: REMEMBER THAT YOU CHANGED THE LOWER LIMIT FOR RES LEVELS BELOW -->
+        self.res_levels = np.linspace(self.e_msr * 0.8, r/q, num=num_levels, endpoint=True)
         self.mut_levels = np.flip(self.res_levels, 0)
         self.mutant = (int(m/2), int(n/2)) # needed in self.create_matrix()
         # stores PIP data
@@ -90,7 +91,7 @@ def main():
     # Set parameters
     m = 6
     n = 6
-    delta = 0.99
+    delta = 0.001
     q = 1
     r = 0.05
     e_0 = 0 # will be assigned a meaningful value later
@@ -104,9 +105,14 @@ def main():
     params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
               'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
               'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
-    num_levels = 25
+    num_levels = 40
+
     # Create and plot Pip object
     pip1 = Pip(params, num_levels)
+    print(pip1.e_msr)
+    efforts = np.linspace(0, pip1.params['r'] / pip1.params['q'],
+                          num=num_levels)
+    pip1.assign_efforts(efforts)
     pip1.create_matrix()
     pip1.plot_pip()
 
