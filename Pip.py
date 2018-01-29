@@ -7,6 +7,7 @@ import Sim_no_update as Sim
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import matplotlib.patches as mpatches
 
 plt.switch_backend('Qt5Agg')
 
@@ -83,15 +84,18 @@ class Pip(object):
             self.res_levels[-1], self.mut_levels[-1], self.mut_levels[0]])
         ax.set_xlabel("Resident effort level")
         ax.set_ylabel("Mutant effort level")
-        ax.set_title("Pairwise Invasibility Plot, delta = {}".format(self.params['delta']))
-        cbar = fig.colorbar(cax, ticks=[0, 1])
-        cbar.ax.set_yticklabels(['Residents win', 'Mutant wins'])
+        ax.set_title(r'$\delta$ = {}'.format(self.params['delta']))
+        black_patch = mpatches.Patch(color='black', label='Residents win')
+        white_patch = mpatches.Patch(color='white', ec='black', label='Mutant wins')
+        ax.legend(handles=[black_patch, white_patch], loc='lower right')
+        ax.plot([self.e_msr], [self.e_msr], marker='o', markersize=5, color="red")
+        ax.plot([self.e_nash], [self.e_nash], marker='o', markersize=5, color="red")
 
 def main():
     # Set parameters
     m = 6
     n = 6
-    delta = 0.001
+    delta = 0.6
     q = 1
     r = 0.05
     e_0 = 0 # will be assigned a meaningful value later
