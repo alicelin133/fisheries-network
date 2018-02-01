@@ -30,7 +30,7 @@ class Pip(object):
         # create array of efforts to be tested, between e_msr and r/q
         self.e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
         self.e_nash = Sim.calculate_e_nash(self.e_msr, m, n)
-        # TODO: REMEMBER THAT YOU CHANGED THE LOWER LIMIT FOR RES LEVELS BELOW -->
+        # remember that *res_levels* can be overwritten with assign_efforts()
         self.res_levels = np.linspace(self.e_msr * 0.8, r/q, num=num_levels, endpoint=True)
         self.mut_levels = np.flip(self.res_levels, 0)
         self.mutant = (int(m/2), int(n/2)) # needed in self.create_matrix()
@@ -49,7 +49,9 @@ class Pip(object):
         creates and runs a Sim_no_update object. Creates a matrix where (i,j)
         corresponds to a coordinate in a plot, 1 for mutant having higher payoff,
         0 for resident having equal or higher payoff. The matrix is saved as
-        *invasion_matrix* attribute."""
+        *invasion_matrix* attribute.
+        Also finds and saves the stable effort level as attribute *e_eq*
+        """
         for i in range(self.num_levels): # mutant
             for j in range(self.num_levels): # resident
                 e_0 = self.make_e_0(i, j)
@@ -57,6 +59,19 @@ class Pip(object):
                 sim1 = Sim.Sim_no_update(self.params)
                 sim1.run_sim()
                 self.invasion_matrix[i,j] = bool(sim1.pi_data[-1][self.mutant] > np.mean(sim1.pi_data[-1]))
+        # calculate stable equilibrium effort level
+        rowsum = np.sum(self.invasion_matrix, axis=1)
+        colsum = np.sum(self.invasion_matrix, axis=0)
+        # find effort values from rows
+        es_row = self.mut_levels[np.argwhere(rowsum == np.amax(rowsum))]
+        # find effort values from columns
+        es_col = self.res_levels[np.argwhere(colsum == np.amin(colsum))]
+        self.e_eq = np.mean(np.concatenate((es_row.flatten(), es_col.flatten())))
+        # testing
+        print("es_row: {}".format(es_row))
+        print("es_col: {}".format(es_col))
+        print("e_eq: {}".format(self.e_eq))
+        
 
     def make_e_0(self, i, j):
         """Helper method, returns custom e_0 parameter for the Sim_no_update
@@ -75,6 +90,10 @@ class Pip(object):
     def get_matrix(self):
         """Returns the *invasion_matrix* attribute."""
         return self.invasion_matrix
+
+    def get_eq(self):
+        """Returns *e_eq*, stable effort level."""
+        return self.e_eq
 
     def plot_pip(self):
         """Plots *self.invasion_matrix* using a colormap. Black = residents win
@@ -95,7 +114,7 @@ def main():
     # Set parameters
     m = 6
     n = 6
-    delta = 0.6
+    delta = 0.02
     q = 1
     r = 0.05
     e_0 = 0 # will be assigned a meaningful value later
@@ -109,11 +128,10 @@ def main():
     params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
               'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
               'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
-    num_levels = 40
+    num_levels = 80
 
     # Create and plot Pip object
     pip1 = Pip(params, num_levels)
-    print(pip1.e_msr)
     efforts = np.linspace(0, pip1.params['r'] / pip1.params['q'],
                           num=num_levels)
     pip1.assign_efforts(efforts)
