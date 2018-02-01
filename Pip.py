@@ -31,7 +31,7 @@ class Pip(object):
         self.e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
         self.e_nash = Sim.calculate_e_nash(self.e_msr, m, n)
         # remember that *res_levels* can be overwritten with assign_efforts()
-        self.res_levels = np.linspace(self.e_msr * 0.8, r/q, num=num_levels, endpoint=True)
+        self.res_levels = np.linspace(self.e_msr * 0, r/q, num=num_levels, endpoint=True)
         self.mut_levels = np.flip(self.res_levels, 0)
         self.mutant = (int(m/2), int(n/2)) # needed in self.create_matrix()
         # stores PIP data
@@ -67,11 +67,6 @@ class Pip(object):
         # find effort values from columns
         es_col = self.res_levels[np.argwhere(colsum == np.amin(colsum))]
         self.e_eq = np.mean(np.concatenate((es_row.flatten(), es_col.flatten())))
-        # testing
-        print("es_row: {}".format(es_row))
-        print("es_col: {}".format(es_col))
-        print("e_eq: {}".format(self.e_eq))
-        
 
     def make_e_0(self, i, j):
         """Helper method, returns custom e_0 parameter for the Sim_no_update
@@ -132,9 +127,6 @@ def main():
 
     # Create and plot Pip object
     pip1 = Pip(params, num_levels)
-    efforts = np.linspace(0, pip1.params['r'] / pip1.params['q'],
-                          num=num_levels)
-    pip1.assign_efforts(efforts)
     pip1.create_matrix()
     pip1.plot_pip()
 
