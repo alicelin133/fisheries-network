@@ -50,10 +50,10 @@ def main():
               'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
               'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
     
-    num_levels = 40
+    num_levels = 80
 
     # choose delta values to be tested
-    num_deltas = 2
+    num_deltas = 50
     start = 0
     end = 0.1
     deltas = np.linspace(start, end, num=num_deltas, endpoint=False)
@@ -62,13 +62,17 @@ def main():
     e_list = []
     path = '/Users/alicelin/Documents/fish/fisheries-network/Pairwise Invasibility Plots/80x80_data/'
     for delta in deltas:
+        start1 = time.time()
         params['delta'] = delta
         pip1 = Pip.Pip(params, num_levels)
         e_vals = [pip1.e_msr, pip1.e_nash, pip1.res_levels[0], pip1.res_levels[-1]]
         pip1.create_matrix()
         e_list.append(pip1.get_eq())
         save_matrix(path, pip1.get_matrix(), delta, e_vals)
-    
+        print("done: delta = {}".format(delta))
+        end1 = time.time()
+        print("---{} sec---".format(end1 - start1))
+
     # save *e_list*
     e_list_fname = path + 'd' + str(start).split('.')[-1] + 'to' + \
                     str(end).split('.')[-1] + 'e_list'
