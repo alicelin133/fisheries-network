@@ -11,6 +11,13 @@ plt.switch_backend('Qt5Agg')
 
 import time
 
+def save_matrix(path, matrix, delta, e_vals):
+    """Saves *matrix* to the folder specified in *path*. The contents
+    of *e_vals* are in the header of the txt file."""
+    header = str(e_vals[0]) + ' ' + str(e_vals[1]) + ' ' + str(e_vals[2]) + ' ' + str(e_vals[3])
+    matrix_fname = path + 'd' + str(delta).split('.')[1] + 'matrix'
+    np.savetxt(matrix_fname, matrix, fmt='%d', header=header)
+
 def plot_e_vs_d(deltas, e_list, e_msr, e_nash):
     """Given the numpy array *deltas* and the list *e_list*, makes a plot."""
     fig, ax = plt.subplots()
@@ -18,15 +25,13 @@ def plot_e_vs_d(deltas, e_list, e_msr, e_nash):
     ax.set_xlabel(r'$\delta$')
     ax.set_ylabel('Stable effort level')
     ax.set_title(r'ESS vs. $\delta$')
+    # add hlines marking e_msr and e_nash
     ax.axhline(y=e_msr, linestyle='--', color='c', linewidth=0.5)
     ax.axhline(y=e_nash, linestyle='--', color='c', linewidth=0.5)
     ax.text(deltas[-1], e_msr * 1.01, '$e_{MSR}$', va='bottom', ha='right', color='c')
     ax.text(deltas[0], e_nash * 0.99, '$e_{Nash}$', va='top', color='c')
 
 def main():
-    e_list = []
-    matrix_list = []
-
     # set parameters other than delta
     m = 6
     n = 6
@@ -45,35 +50,32 @@ def main():
               'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
               'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
     
-    num_levels = 20
+    num_levels = 40
 
     # choose delta values to be tested
     num_deltas = 2
     start = 0
-    end = 0.005
+    end = 0.1
     deltas = np.linspace(start, end, num=num_deltas, endpoint=False)
 
-    # generate data
+    # generate data and save matrices
+    e_list = []
+    path = '/Users/alicelin/Documents/fish/fisheries-network/Pairwise Invasibility Plots/80x80_data/'
     for delta in deltas:
         params['delta'] = delta
         pip1 = Pip.Pip(params, num_levels)
-        e_msr = pip1.e_msr
-        e_nash = pip1.e_nash
+        e_vals = [pip1.e_msr, pip1.e_nash, pip1.res_levels[0], pip1.res_levels[-1]]
         pip1.create_matrix()
         e_list.append(pip1.get_eq())
-        matrix_list.append(pip1.get_matrix())
+        save_matrix(path, pip1.get_matrix(), delta, e_vals)
     
-    # save *e_list* and each matrix in *matrix_list*
-    path = '/Users/alicelin/Documents/fish/fisheries-network/Pairwise Invasibility Plots/80x80_data/'
+    # save *e_list*
     e_list_fname = path + 'd' + str(start).split('.')[-1] + 'to' + \
                     str(end).split('.')[-1] + 'e_list'
     np.savetxt(e_list_fname, e_list, fmt='%9.8f')
-    for i in range(len(matrix_list)):
-        matrix_fname = path + 'd' + str(deltas[i]).split('.')[1] + 'matrix'
-        np.savetxt(matrix_fname, matrix_list[i], fmt='%d')
 
     # plot effort vs delta
-    plot_e_vs_d(deltas, e_list, e_msr, e_nash)
+    plot_e_vs_d(deltas, e_list, pip1.e_msr, pip1.e_nash)
 
 if __name__ == '__main__':
     start = time.time()
