@@ -8,7 +8,7 @@ import matplotlib.patches as mpatches
 plt.switch_backend('Qt5Agg')
 
 def main():
-    ds = [0,0,0,0]
+    ds = [0,0.04,0.07,0.09]
     # load the corresponding matrices from their txt files
     path = '/Users/alicelin/Documents/fish/fisheries-network/Pairwise Invasibility Plots/80x80_data/'
     fnames = [path + 'd' + str(d).split('.')[-1] + 'matrix' for d in ds]
