@@ -54,8 +54,8 @@ def main():
 
     # choose delta values to be tested
     num_deltas = 50
-    start = 0
-    end = 0.1
+    start = 0.1
+    end = 0.2
     deltas = np.linspace(start, end, num=num_deltas, endpoint=False)
 
     # generate data and save matrices
@@ -77,6 +77,11 @@ def main():
     e_list_fname = path + 'd' + str(start).split('.')[-1] + 'to' + \
                     str(end).split('.')[-1] + 'e_list'
     np.savetxt(e_list_fname, e_list, fmt='%9.8f')
+
+    # save *deltas*
+    deltas_fname = path + 'd' + str(start).split('.')[-1] + 'to' + \
+                    str(end).split('.')[-1] + 'deltas'
+    np.savetxt(deltas_fname, deltas, fmt='%9.8f')
 
     # plot effort vs delta
     plot_e_vs_d(deltas, e_list, pip1.e_msr, pip1.e_nash)
