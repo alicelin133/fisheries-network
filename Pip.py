@@ -30,10 +30,10 @@ class Pip(object):
         # create array of efforts to be tested, between e_msr and r/q
         self.e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
         self.e_nash = Sim.calculate_e_nash(self.e_msr, m, n)
-        # remember that *res_levels* can be overwritten with assign_efforts()
+        # REMEMBER that *res_levels* can be overwritten with assign_efforts()
         self.res_levels = np.linspace(self.e_msr * 0, r/q, num=num_levels, endpoint=True)
-        self.mut_levels = np.flip(self.res_levels, 0)
-        self.mutant = (int(m/2), int(n/2)) # needed in self.create_matrix()
+        self.mut_levels = np.flip(self.res_levels, 0) # mutant effort levels are same as residents
+        self.mutant = (int(m/2), int(n/2)) # needed in self.create_matrix(), location of mutant
         # stores PIP data
         self.invasion_matrix = np.empty((num_levels, num_levels))
     
@@ -77,8 +77,8 @@ class Pip(object):
         m = self.params['m']
         n = self.params['n']
         e_0 = np.full((m, n), self.res_levels[j]) # resident strategy
-        e_0 = e_0.reshape((m, n))
-        self.mutant = (int(m/2), int(n/2))
+        e_0 = e_0.reshape((m, n)) # nts: is this line necessary?
+        self.mutant = (int(m/2), int(n/2)) # not necessary, done in the constructor...
         e_0[self.mutant] = self.mut_levels[i] # mutant strategy
         return e_0
 
@@ -123,7 +123,7 @@ def main():
     params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
               'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
               'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
-    num_levels = 80
+    num_levels = 40
 
     # Create and plot Pip object
     pip1 = Pip(params, num_levels)
