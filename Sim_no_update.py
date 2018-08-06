@@ -18,9 +18,10 @@ class Sim_no_update(object):
         'p': float
         'w': float
         'num_feedback': int
-        'copy_noise': float
+        'copy_noise': float, not actually used in this class bc of no updating
         'gm': boolean
         'num_steps': int
+        'wellmixed': boolean
     Data attributes:
         m = number of rows in lattice of fishers
         n = number of columns in lattice of fishers
@@ -34,6 +35,7 @@ class Sim_no_update(object):
         num_feedback: number cycles of harvest/regrowth/leakage per time step
         gm = boolean, True = global mutation, False = local mutation
         num_steps = number of time steps that the simulation runs
+        wellmixed = are the fish well-mixed in their movement?
         R_t = mxn numpy array, current resource levels for each fisher
         e_t = mxn numpy array, current effort levels for each fisher
         R_data = mxnxnum_steps np array, saves R_t for all t
@@ -57,6 +59,7 @@ class Sim_no_update(object):
         self.copy_noise = params['copy_noise']
         self.gm = params['gm']
         self.num_steps = params['num_steps']
+        self.wellmixed = params['wellmixed'] # whether the fish are well-mixed
         self.R_t = np.copy(params['R_0'])
         self.e_t = np.copy(params['e_0'])
         self.pi_t = np.zeros((self.m,self.n))
@@ -119,16 +122,23 @@ class Sim_no_update(object):
 
     def leakage(self):
         """Updates R_t based on fish movement across edges of the lattice."""
-        self.dR = self.delta * self.R_t / (self.DEGREE + 1)
-        for i in range(self.m):
-            for j in range(self.n):
-                n = self.neighbors[i][j]
-                dR = self.dR[i][j]
-                for k in range(self.DEGREE):
-                    self.R_from_neighbors[n[k][0],n[k][1]] += dR
-                    # TODO: NEED TO TEST THIS
-        self.R_t = self.R_t - self.DEGREE * self.dR + self.R_from_neighbors
-        self.R_from_neighbors = np.zeros((self.m,self.n))
+        if self.wellmixed:
+            # Fish are well-mixed
+            # Total resources are evenly divided among all fishers
+            fishpercap = np.sum(self.R_t) / (self.m * self.n)
+            self.R_t = np.full((self.m, self.n), fishpercap)
+        else:
+            # Fish can only move along edges of lattice
+            self.dR = self.delta * self.R_t / (self.DEGREE + 1)
+            for i in range(self.m):
+               for j in range(self.n):
+                   n = self.neighbors[i][j]
+                   dR = self.dR[i][j]
+                   for k in range(self.DEGREE):
+                        self.R_from_neighbors[n[k][0],n[k][1]] += dR
+                        # TODO: NEED TO TEST THIS
+            self.R_t = self.R_t - self.DEGREE * self.dR + self.R_from_neighbors
+            self.R_from_neighbors = np.zeros((self.m,self.n))
 
 def calculate_e_msr(m, n, q, r, price, cost):
     """Calculates value of e_msr (maximum sustainable rent)."""
@@ -155,9 +165,10 @@ def main():
     p = 1
     w = 0.5
     num_feedback = 15
-    copy_noise = 0.0005
+    copy_noise = 0.0005 # not actually used here
     gm = False
     num_steps = 51
+    wellmixed = True # False means that the fish move along the lattice i.e. not well-mixed
     # creating e_0
     e_msr = calculate_e_msr(m, n, q, r, p, w)
     e_nash = calculate_e_nash(e_msr, m, n)
@@ -168,7 +179,8 @@ def main():
 
     params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
               'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
-              'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
+              'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps,
+              'wellmixed': wellmixed}
 
     mysim = Sim_no_update(params)
     mysim.run_sim()
