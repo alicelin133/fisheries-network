@@ -12,9 +12,12 @@ plt.switch_backend('Qt5Agg')
 import time
 
 def main():
-    # set parameters
-    m = 10
-    n = 10
+    # set seed for pseudo RNG
+    seed = 17
+    np.random.seed(seed)
+    # set parameter values
+    m = 100
+    n = 1
     delta = 1
     q = 1
     r = 0.2
@@ -22,22 +25,27 @@ def main():
     p = 1
     w = 0.5
     num_feedback = 15
-    copy_noise = 0.0005
+    copy_noise = 0.0005 # not actually used here
     gm = False
     num_steps = 100
+    wellmixed = False # False means that the fish move along the lattice i.e. not well-mixed
+    # creating e_0
     e_msr = Sim.calculate_e_msr(m, n, q, r, p, w)
     e_nash = Sim.calculate_e_nash(e_msr, m, n)
-    e_0 = np.full((m, n), e_msr) # resident strategy is e_msr
-    e_0 = e_0.reshape((m,n))
+    e_0 = np.full((m,n), e_msr)
     mid = (int(m/2), int(n/2))
     e_0[mid] = e_nash # one invader has strategy e_nash
-    
-    # create and run the simulation
-    mysim = Sim.Sim_no_update(m, n, delta, q, r, R_0, e_0, p, w,
-        num_feedback, copy_noise, gm, num_steps)
+
+    params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
+              'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
+              'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps,
+              'wellmixed': wellmixed}
+
+    mysim = Sim.Sim_no_update(params)
     mysim.run_sim()
     
     # making colormap of payoffs
+    print("Nash: {} MSR: {}".format(e_nash, e_msr))
     print(mysim.pi_data[-1])
     print(mysim.pi_data[-1][mid])
     data = mysim.pi_data[-1]
