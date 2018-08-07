@@ -48,6 +48,8 @@ class Sim_no_update(object):
         self.DEGREE = 4 # can change this later
         self.m = params['m']
         self.n = params['n']
+        if self.m == 1 or self.n == 1:
+            self.DEGREE = 2
         self.delta = params['delta']
         self.q = params['q']
         self.r = params['r']
@@ -78,10 +80,20 @@ class Sim_no_update(object):
         for i in range(self.m):
             for j in range(self.n):
                 neighbors = np.zeros((self.DEGREE,2), dtype=int)
-                neighbors[0] = (i, (j + 1) % self.n)
-                neighbors[1] = (i, (j - 1) % self.n)
-                neighbors[2] = ((i + 1) % self.m, j)
-                neighbors[3] = ((i - 1) % self.m, j)
+                if self.m == 1:
+                    # lattice is actually a ring
+                    neighbors[0] = (i, (j + 1) % self.n)
+                    neighbors[1] = (i, (j - 1) % self.n)
+                elif self.n == 1:
+                    # lattice is actually a ring
+                    neighbors[0] = ((i + 1) % self.m, j)
+                    neighbors[1] = ((i - 1) % self.m, j)
+                else:
+                    # lattice is not a ring
+                    neighbors[0] = (i, (j + 1) % self.n)
+                    neighbors[1] = (i, (j - 1) % self.n)
+                    neighbors[2] = ((i + 1) % self.m, j)
+                    neighbors[3] = ((i - 1) % self.m, j)
                 self.neighbors[i][j] = neighbors
 
     def run_sim(self):
@@ -130,15 +142,17 @@ class Sim_no_update(object):
         else:
             # Fish can only move along edges of lattice
             self.dR = self.delta * self.R_t / (self.DEGREE + 1)
+            # ^how much each fisher is giving to one of their neighbors
             for i in range(self.m):
                for j in range(self.n):
                    n = self.neighbors[i][j]
-                   dR = self.dR[i][j]
+                   dR = self.dR[i][j] # how much to give to each neighbor
                    for k in range(self.DEGREE):
-                        self.R_from_neighbors[n[k][0],n[k][1]] += dR
-                        # TODO: NEED TO TEST THIS
+                       # each neighbor of (i,j) fisher gets dR from the (i,j) fisher
+                       self.R_from_neighbors[n[k][0],n[k][1]] += dR
+                       # TODO: NEED TO TEST THIS
             self.R_t = self.R_t - self.DEGREE * self.dR + self.R_from_neighbors
-            self.R_from_neighbors = np.zeros((self.m,self.n))
+            self.R_from_neighbors = np.zeros((self.m,self.n)) # reset this to zeros
 
 def calculate_e_msr(m, n, q, r, price, cost):
     """Calculates value of e_msr (maximum sustainable rent)."""
@@ -156,8 +170,8 @@ def main():
     seed = 17
     np.random.seed(seed)
     # set parameter values
-    m = 10
-    n = 10
+    m = 100
+    n = 1
     delta = 1
     q = 1
     r = 0.2
