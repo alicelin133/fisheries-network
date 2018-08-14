@@ -59,14 +59,37 @@ class Pip(object):
                 sim1 = Sim.Sim_no_update(self.params)
                 sim1.run_sim()
                 self.invasion_matrix[i,j] = bool(sim1.pi_data[-1][self.mutant] > np.mean(sim1.pi_data[-1]))
+        self.get_eqs()
+
+    def get_eqs(self):
+        '''Computes the equilibrium effort, resource level, and payoff by finding the intersection
+        point on the PIP and then rerunning the necessary '''
         # calculate stable equilibrium effort level
         rowsum = np.sum(self.invasion_matrix, axis=1)
         colsum = np.sum(self.invasion_matrix, axis=0)
         # find effort values from rows
-        es_row = self.mut_levels[np.argwhere(rowsum == np.amax(rowsum))]
+        eq_indices_r = np.argwhere(rowsum == np.amax(rowsum)).flatten() # indices for eq based on row
+        es_row = self.mut_levels[eq_indices_r]
         # find effort values from columns
-        es_col = self.res_levels[np.argwhere(colsum == np.amin(colsum))]
+        eq_indices_c = np.argwhere(colsum == np.amin(colsum)).flatten() # indices for eq based on col
+        es_col = self.res_levels[eq_indices_c]
         self.e_eq = np.mean(np.concatenate((es_row.flatten(), es_col.flatten())))
+        R_eqs = [] # stores resource level equilibria for indices close to the intsxn pt of PIP
+        pi_eqs = [] # stores payoff equilibria for indices close to intsxn pt of PIP
+        for x in eq_indices_r:
+            for y in eq_indices_c:
+                e0 = self.make_e_0(x, y)
+                self.params['e_0'] = e0
+                sim2 = Sim.Sim_no_update(self.params) # recreate specific simulation
+                sim2.run_sim()
+                R_eq = (np.sum(sim2.R_data[-1,:,:]) - sim2.R_data[-1, self.mutant[0], self.mutant[1]]) / \
+                        (sim2.m * sim2.n - 1)
+                pi_eq = (np.sum(sim2.pi_data[-1,:,:]) - sim2.pi_data[-1, self.mutant[0], self.mutant[1]]) / \
+                        (sim2.m * sim2.n - 1)
+                R_eqs.append(R_eq)
+                pi_eqs.append(pi_eq)
+        self.R_eq = sum(R_eqs) / len(R_eqs)
+        self.pi_eq = sum(pi_eqs) / len(pi_eqs)
 
     def make_e_0(self, i, j):
         """Helper method, returns custom e_0 parameter for the Sim_no_update
@@ -120,15 +143,20 @@ def main():
     copy_noise = 0.0005
     gm = False
     num_steps = 10
+    wellmixed = False
     params = {'m': m,'n': n, 'delta': delta, 'q': q, 'r': r, 'R_0': R_0,
               'e_0': e_0, 'p': p, 'w': w, 'num_feedback': num_feedback,
-              'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps}
+              'copy_noise': copy_noise, 'gm': gm, 'num_steps': num_steps,
+              'wellmixed': wellmixed}
     num_levels = 40
 
     # Create and plot Pip object
     pip1 = Pip(params, num_levels)
     pip1.create_matrix()
+    #pip1.get_matrix()
+    print(pip1.e_eq, pip1.R_eq, pip1.pi_eq)
     pip1.plot_pip()
+
 
 if __name__ == '__main__':
     start = time.time()
