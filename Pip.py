@@ -82,9 +82,9 @@ class Pip(object):
                 self.params['e_0'] = e0
                 sim2 = Sim.Sim_no_update(self.params) # recreate specific simulation
                 sim2.run_sim()
-                R_eq = (np.sum(sim2.R_data[-1,:,:]) - sim2.R_data[-1, self.mutant[0], self.mutant[1]]) / \
+                R_eq = (np.sum(sim2.R_data[-10:,:,:]) - sim2.R_data[-1, self.mutant[0], self.mutant[1]]) / \
                         (sim2.m * sim2.n - 1)
-                pi_eq = (np.sum(sim2.pi_data[-1,:,:]) - sim2.pi_data[-1, self.mutant[0], self.mutant[1]]) / \
+                pi_eq = (np.sum(sim2.pi_data[-10:,:,:]) - sim2.pi_data[-1, self.mutant[0], self.mutant[1]]) / \
                         (sim2.m * sim2.n - 1)
                 R_eqs.append(R_eq)
                 pi_eqs.append(pi_eq)
