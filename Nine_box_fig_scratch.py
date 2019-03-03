@@ -28,14 +28,16 @@ if __name__ == '__main__':
     pathq1 = '/Users/alicelin/Documents/fish/fisheries-network/Figures/9box/PIP80x80/q1/'
     pathq2 = '/Users/alicelin/Documents/fish/fisheries-network/Figures/9box/PIP80x80/q2/'
     pathq06 = '/Users/alicelin/Documents/fish/fisheries-network/Figures/9box/PIP80x80/q0_6/'
-    num_lines = 3 # number of lines on each plot
+
+    paths = [pathq06, pathq1, pathq2]
+    labels = ['$q = 0.6$', '$q = 1$', '$q = 2$']
 
     # colors from colormap
     e_cmap = cm.get_cmap('Blues')
     R_cmap = cm.get_cmap('Purples')
     pi_cmap = cm.get_cmap('Greens')
     linecolors = []
-    for x in np.linspace(0, 1, num=num_lines+1, endpoint=False)[1:]:
+    for x in np.linspace(0, 1, num=len(paths)+1, endpoint=False)[1:]:
         colors = [e_cmap(x), R_cmap(x), pi_cmap(x)]
         linecolors.append(colors)
 
@@ -43,8 +45,6 @@ if __name__ == '__main__':
     fig, axs = plt.subplots(3,3, sharex='col', sharey='row')
 
     # plot sets of data in order
-    paths = [pathq06, pathq1, pathq2]
-    labels = ['$q = 0.6$', '$q = 1$', '$q = 2$']
     for j in range(len(paths)):
         deltas, list_wm, list_l, list_r = load_data(paths[j])
         for i in range(3):
